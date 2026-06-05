@@ -41,9 +41,16 @@
           buildInputs = [
             # Add additional build inputs here
           ]
+          ++ lib.optionals pkgs.stdenv.isLinux [
+            pkgs.openssl
+          ]
           ++ lib.optionals pkgs.stdenv.isDarwin [
             # Additional darwin specific inputs can be set here
             pkgs.libiconv
+          ];
+
+          nativeBuildInputs = [
+            pkgs.pkg-config
           ];
 
           # Additional environment variables can be set directly
