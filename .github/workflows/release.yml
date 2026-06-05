@@ -90,10 +90,13 @@ jobs:
         run: gh release create "${GITHUB_REF_NAME}" dist/* --verify-tag --title "${GITHUB_REF_NAME}" --notes "Automated nju-cli release."
 
       - name: Sync binaries into Codex marketplace
-        if: ${{ secrets.MARKETPLACE_SYNC_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_SYNC_TOKEN }}
         run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "MARKETPLACE_SYNC_TOKEN is not set; skip marketplace sync trigger."
+            exit 0
+          fi
           gh workflow run sync-cli-binaries.yml \
             --repo nju-cli/codex-marketplace \
             --ref main \
