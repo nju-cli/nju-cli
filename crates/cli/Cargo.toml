@@ -11,6 +11,8 @@ path = "src/main.rs"
 [dependencies]
 academic-affairs = { path = "../academic-affairs" }
 anyhow = "1"
+common = { path = "../common" }
+exchange-system = { path = "../exchange-system" }
 clap = { version = "4", features = ["derive"] }
 my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }
 platform-dirs = "0.3"
