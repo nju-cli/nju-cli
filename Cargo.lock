@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "academic-affairs"
-version = "1.0.0"
+version = "1.2.0"
 dependencies = [
  "anyhow",
  "common",
@@ -326,7 +326,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cli"
-version = "1.0.0"
+version = "1.2.0"
 dependencies = [
  "academic-affairs",
  "anyhow",
@@ -356,7 +356,7 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "common"
-version = "1.0.0"
+version = "1.2.0"
 dependencies = [
  "aes",
  "anyhow",
@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "exchange-system"
-version = "1.0.0"
+version = "1.2.0"
 dependencies = [
  "anyhow",
  "common",
