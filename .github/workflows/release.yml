@@ -19,9 +19,11 @@ jobs:
         include:
           - os: ubuntu-latest
             name: linux-x86_64
+            package: nju-cli-static
             artifact: nju-cli-linux-x86_64.tar.gz
           - os: macos-14
             name: macos-aarch64
+            package: nju-cli
             artifact: nju-cli-macos-aarch64.tar.gz
 
     steps:
@@ -32,7 +34,7 @@ jobs:
           trust-runner-user: true
 
       - name: Build nju-cli
-        run: nix build --accept-flake-config .#nju-cli
+        run: nix build --accept-flake-config ".#${{ matrix.package }}"
 
       - name: Push to Nix binary cache
         env:

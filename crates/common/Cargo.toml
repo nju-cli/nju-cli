@@ -14,7 +14,7 @@ html-to-markdown-rs = "3.6.0-rc.12"
 image = "0.24"
 my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }
 regex = "1"
-reqwest = { version = "0.12", features = ["cookies"] }
+reqwest = { workspace = true, features = ["cookies"] }
 scraper = "0.24"
 tokio = { workspace = true, features = ["fs", "sync"] }
 

@@ -19,6 +19,11 @@
 
     flake-utils.url = "github:numtide/flake-utils";
 
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     advisory-db = {
       url = "github:rustsec/advisory-db";
       flake = false;
@@ -31,17 +36,27 @@
       nixpkgs,
       crane,
       flake-utils,
+      rust-overlay,
       advisory-db,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import rust-overlay) ];
+        };
 
         inherit (pkgs) lib;
 
         craneLib = crane.mkLib pkgs;
+        muslCraneLib = (crane.mkLib pkgs).overrideToolchain (
+          p:
+          p.rust-bin.stable.latest.default.override {
+            targets = [ "x86_64-unknown-linux-musl" ];
+          }
+        );
         src = craneLib.cleanCargoSource ./.;
 
         # Common arguments can be set here to avoid repeating them later
@@ -51,9 +66,6 @@
 
           buildInputs = [
             # Add additional build inputs here
-          ]
-          ++ lib.optionals pkgs.stdenv.isLinux [
-            pkgs.openssl
           ]
           ++ lib.optionals pkgs.stdenv.isDarwin [
             # Additional darwin specific inputs can be set here
@@ -86,6 +98,24 @@
           // {
             pname = "nju-cli";
             cargoExtraArgs = "-p cli";
+          }
+        );
+
+        muslCommonArgs = commonArgs // {
+          CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
+          CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
+        };
+
+        muslCargoArtifacts = muslCraneLib.buildDepsOnly muslCommonArgs;
+
+        nju-cli-static = muslCraneLib.buildPackage (
+          muslCommonArgs
+          // {
+            pname = "nju-cli-static";
+            cargoArtifacts = muslCargoArtifacts;
+            inherit (craneLib.crateNameFromCargoToml { inherit src; }) version;
+            cargoExtraArgs = "-p cli";
+            doCheck = false;
           }
         );
       in
@@ -174,6 +204,9 @@
         packages = {
           inherit nju-cli;
           default = nju-cli;
+        }
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          inherit nju-cli-static;
         };
 
         apps = {
