@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+# Note that we define member crates with a wildcard here and NOT with explicit
+# paths because the flake.nix is written in a way such that top-level members
+# (`my-cli` and `my-server`) are built as different derivations which avoid being
+# rebuilt if the other package's sources change.
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.metadata.crane]
+name = "my-workspace"
