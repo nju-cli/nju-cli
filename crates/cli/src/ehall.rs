@@ -1,6 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{Args, Subcommand};
 use serde_json::Value;
 
@@ -13,6 +16,18 @@ pub enum EhallCommand {
     TrainingProgram {
         #[command(subcommand)]
         command: TrainingProgramCommand,
+    },
+    /// 本科全校课表查询。
+    #[command(name = "all-undergraduate-courses")]
+    CourseSchedule {
+        #[command(subcommand)]
+        command: CourseScheduleCommand,
+    },
+    /// 我的课表、课程详情、考试说明和免修不免考。
+    #[command(name = "my-course-schedule")]
+    MyCourseSchedule {
+        #[command(subcommand)]
+        command: MyCourseScheduleCommand,
     },
 }
 
@@ -81,15 +96,192 @@ pub struct ListTrainingProgramsOptions {
     json: bool,
 }
 
+#[derive(Debug, Subcommand)]
+pub enum CourseScheduleCommand {
+    /// 列出一页全校本科课程。
+    List(ListCourseSchedulesOptions),
+    /// 下载所有匹配的全校本科课程。
+    Download(DownloadCourseSchedulesOptions),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum MyCourseScheduleCommand {
+    /// 列出可选学期。
+    Terms {
+        /// 输出完整 JSON。
+        #[arg(long)]
+        json: bool,
+    },
+    /// 列出指定学期下我的课表。
+    List(ListMyCoursesOptions),
+    /// 显示或下载课程详情，参数可以是课程号 KCH 或教学班 JXBID。
+    Detail(MyCourseDetailOptions),
+    /// 显示网页底部的考试说明和上课冲突说明。
+    #[command(name = "exam-notes")]
+    ExamNotes,
+    /// 查看已经申请的免修不免考课程。
+    Exemptions {
+        /// 学年学期代码，如 2025-2026-2；不传则列出所有已申请记录。
+        #[arg(long)]
+        term: Option<String>,
+        /// 输出完整 JSON。
+        #[arg(long)]
+        json: bool,
+    },
+    /// 申请某门课免修不免考。参数可以是课程号 KCH 或教学班 JXBID。
+    #[command(name = "apply-exemption")]
+    ApplyExemption {
+        /// 课程号 KCH 或教学班 JXBID。
+        course: String,
+        /// 学年学期代码，如 2025-2026-2；默认当前学期。
+        #[arg(long)]
+        term: Option<String>,
+        /// 申请理由。
+        #[arg(long)]
+        reason: String,
+        /// 输出完整 JSON。
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Args)]
+pub struct ListMyCoursesOptions {
+    /// 学年学期代码，如 2025-2026-2；默认当前学期。
+    #[arg(long)]
+    term: Option<String>,
+    /// 页码，从 1 开始。
+    #[arg(long, default_value_t = 1)]
+    page: u64,
+    /// 每页数量。
+    #[arg(long, default_value_t = 100)]
+    page_size: u64,
+    /// 输出完整 JSON。
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct MyCourseDetailOptions {
+    /// 课程号 KCH 或教学班 JXBID，支持多个。
+    courses: Vec<String>,
+    /// 学年学期代码，如 2025-2026-2；默认当前学期。
+    #[arg(long)]
+    term: Option<String>,
+    /// 下载到目录；不传则直接输出。
+    #[arg(short, long)]
+    output_dir: Option<PathBuf>,
+}
+
+#[derive(Debug, Args)]
+pub struct ListCourseSchedulesOptions {
+    /// 页码，从 1 开始。
+    #[arg(long, default_value_t = 1)]
+    page: u64,
+    /// 每页数量。
+    #[arg(long, default_value_t = 20)]
+    page_size: u64,
+    /// 输出完整 JSON。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: CourseScheduleQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct DownloadCourseSchedulesOptions {
+    /// 每次请求页大小。
+    #[arg(long, default_value_t = 200)]
+    page_size: u64,
+    /// 输出路径。默认按输出格式写到 all-undergraduate-courses.tsv 或 all-undergraduate-courses.json。
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    /// 下载为 JSON；默认下载 TSV。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: CourseScheduleQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct CourseScheduleQueryOptions {
+    /// 学年学期代码，如 2025-2026-2；默认当前学期。
+    #[arg(long)]
+    term: Option<String>,
+    /// 课程号 KCH，模糊匹配。
+    #[arg(long)]
+    course_id: Option<String>,
+    /// 课程名 KCM，模糊匹配。
+    #[arg(long)]
+    course_name: Option<String>,
+    /// 教学班名称 JXBMC，模糊匹配。
+    #[arg(long)]
+    class_name: Option<String>,
+    /// 上课教师 SKJS，模糊匹配。
+    #[arg(long)]
+    teacher: Option<String>,
+    /// 校区代码 XXXQDM，如 1/3/4。
+    #[arg(long)]
+    campus: Option<String>,
+    /// 开课单位代码 PKDWDM。
+    #[arg(long)]
+    department: Option<String>,
+    /// 通修课程类别代码 TXKCLB。
+    #[arg(long)]
+    general_category: Option<String>,
+    /// 上课日期 SKXQ，如 周一。
+    #[arg(long)]
+    weekday: Option<String>,
+    /// 开始节次 KSJC。
+    #[arg(long)]
+    start_period: Option<String>,
+    /// 结束节次 JSJC。
+    #[arg(long)]
+    end_period: Option<String>,
+    /// 上课周次 SKZC。该字段通常是页面周次选择器生成的值。
+    #[arg(long)]
+    week: Option<String>,
+    /// 教学楼代码 JXLDM。
+    #[arg(long)]
+    building: Option<String>,
+    /// 上课教室 SKJAS，模糊匹配。
+    #[arg(long)]
+    classroom: Option<String>,
+    /// 任意字段筛选，格式 FIELD=VALUE 或 FIELD:BUILDER=VALUE。
+    #[arg(long = "filter")]
+    filters: Vec<String>,
+}
+
 pub async fn handle(command: EhallCommand) -> Result<()> {
     let client = auth::authenticated_client()?;
-    ehall::training_program::prepare_session(&client, ehall::training_program::default_role_id())
-        .await
-        .context("failed to prepare ehall session; try running `nju-cli login` again")?;
 
     match command {
         EhallCommand::TrainingProgram { command } => {
+            ehall::training_program::prepare_session(
+                &client,
+                ehall::training_program::default_role_id(),
+            )
+            .await
+            .context("failed to prepare ehall training program session; try running `nju-cli login` again")?;
             handle_training_program(command, &client).await
+        }
+        EhallCommand::CourseSchedule { command } => {
+            ehall::course_schedule::prepare_session(
+                &client,
+                ehall::course_schedule::default_role_id(),
+            )
+            .await
+            .context("failed to prepare ehall course schedule session; try running `nju-cli login` again")?;
+            handle_course_schedule(command, &client).await
+        }
+        EhallCommand::MyCourseSchedule { command } => {
+            ehall::my_course_schedule::prepare_schedule_session(
+                &client,
+                ehall::my_course_schedule::default_role_id(),
+            )
+            .await
+            .context("failed to prepare ehall my course schedule session; try running `nju-cli login` again")?;
+            handle_my_course_schedule(command, &client).await
         }
     }
 }
@@ -215,6 +407,399 @@ async fn handle_training_program(
     }
 
     Ok(())
+}
+
+async fn handle_course_schedule(
+    command: CourseScheduleCommand,
+    client: &reqwest::Client,
+) -> Result<()> {
+    match command {
+        CourseScheduleCommand::List(options) => {
+            let page = ehall::course_schedule::list_course_schedules(
+                client,
+                &ehall::course_schedule::CourseScheduleListOptions {
+                    page_number: options.page,
+                    page_size: options.page_size,
+                    term: options.query.term.clone(),
+                    filters: course_schedule_filters(&options.query)?,
+                },
+            )
+            .await
+            .context("failed to list course schedules")?;
+
+            if options.json {
+                println!("{}", serde_json::to_string_pretty(&page)?);
+            } else {
+                for course in page.rows {
+                    print_course_schedule_row(&course);
+                }
+            }
+        }
+        CourseScheduleCommand::Download(options) => {
+            let courses = ehall::course_schedule::list_all_course_schedules(
+                client,
+                &ehall::course_schedule::CourseScheduleListOptions {
+                    page_number: 1,
+                    page_size: options.page_size,
+                    term: options.query.term.clone(),
+                    filters: course_schedule_filters(&options.query)?,
+                },
+            )
+            .await
+            .context("failed to download course schedules")?;
+            let output = options.output.unwrap_or_else(|| {
+                if options.json {
+                    PathBuf::from("all-undergraduate-courses.json")
+                } else {
+                    PathBuf::from("all-undergraduate-courses.tsv")
+                }
+            });
+
+            if options.json {
+                let json = serde_json::to_string_pretty(&courses)
+                    .context("failed to serialize course schedules")?;
+                std::fs::write(&output, json)
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            } else {
+                std::fs::write(&output, course_schedules_to_tsv(&courses))
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            }
+            println!("{} {}", courses.len(), output.display());
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_my_course_schedule(
+    command: MyCourseScheduleCommand,
+    client: &reqwest::Client,
+) -> Result<()> {
+    match command {
+        MyCourseScheduleCommand::Terms { json } => {
+            let terms = ehall::my_course_schedule::list_terms(client)
+                .await
+                .context("failed to list my course schedule terms")?;
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&terms)?);
+            } else {
+                for term in terms {
+                    println!("{}\t{}", term.id, term.name);
+                }
+            }
+        }
+        MyCourseScheduleCommand::List(options) => {
+            let page = ehall::my_course_schedule::list_courses(
+                client,
+                &ehall::my_course_schedule::MyCourseListOptions {
+                    term: options.term,
+                    page_number: options.page,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to list my course schedule")?;
+
+            if options.json {
+                println!("{}", serde_json::to_string_pretty(&page)?);
+            } else {
+                for course in page.rows {
+                    print_my_course_row(&course);
+                }
+            }
+        }
+        MyCourseScheduleCommand::Detail(options) => {
+            if options.courses.is_empty() {
+                return Err(anyhow!(
+                    "please provide at least one course id or teaching class id"
+                ));
+            }
+
+            if let Some(output_dir) = options.output_dir {
+                std::fs::create_dir_all(&output_dir)
+                    .with_context(|| format!("failed to create {}", output_dir.display()))?;
+                for course in options.courses {
+                    let detail = ehall::my_course_schedule::get_course_detail(
+                        client,
+                        options.term.as_deref(),
+                        &course,
+                    )
+                    .await
+                    .with_context(|| format!("failed to get detail for course {course}"))?;
+                    let file_name = format!(
+                        "{}-{}.json",
+                        sanitize_filename::sanitize(&detail.schedule.course_id),
+                        sanitize_filename::sanitize(&detail.schedule.teaching_class_id)
+                    );
+                    let path = output_dir.join(file_name);
+                    let json = serde_json::to_string_pretty(&detail)
+                        .context("failed to serialize my course detail")?;
+                    std::fs::write(&path, json)
+                        .with_context(|| format!("failed to write {}", path.display()))?;
+                    println!("{}\t{}", course, path.display());
+                }
+            } else {
+                let mut details = Vec::new();
+                for course in options.courses {
+                    details.push(
+                        ehall::my_course_schedule::get_course_detail(
+                            client,
+                            options.term.as_deref(),
+                            &course,
+                        )
+                        .await
+                        .with_context(|| format!("failed to get detail for course {course}"))?,
+                    );
+                }
+                println!("{}", serde_json::to_string_pretty(&details)?);
+            }
+        }
+        MyCourseScheduleCommand::ExamNotes => {
+            let notes = ehall::my_course_schedule::get_exam_notes(client)
+                .await
+                .context("failed to read my course schedule exam notes")?;
+            println!("{notes}");
+        }
+        MyCourseScheduleCommand::Exemptions { term, json } => {
+            ehall::my_course_schedule::prepare_exemption_session(
+                client,
+                ehall::my_course_schedule::default_role_id(),
+            )
+            .await
+            .context(
+                "failed to prepare ehall exemption session; try running `nju-cli login` again",
+            )?;
+            let applications =
+                ehall::my_course_schedule::list_exemption_applications(client, term.as_deref())
+                    .await
+                    .context("failed to list exemption applications")?;
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&applications)?);
+            } else {
+                for application in applications {
+                    println!(
+                        "{}\t{}\t{}\t{}\t{}\t{}",
+                        application.course_id,
+                        application.course_name.as_deref().unwrap_or_default(),
+                        application.term_id.as_deref().unwrap_or_default(),
+                        application.status_name.as_deref().unwrap_or_default(),
+                        application.teachers.as_deref().unwrap_or_default(),
+                        application.reason.as_deref().unwrap_or_default()
+                    );
+                }
+            }
+        }
+        MyCourseScheduleCommand::ApplyExemption {
+            course,
+            term,
+            reason,
+            json,
+        } => {
+            if reason.trim().is_empty() {
+                return Err(anyhow!("please provide a non-empty --reason"));
+            }
+            ehall::my_course_schedule::prepare_exemption_session(
+                client,
+                ehall::my_course_schedule::default_role_id(),
+            )
+            .await
+            .context(
+                "failed to prepare ehall exemption session; try running `nju-cli login` again",
+            )?;
+            let result = ehall::my_course_schedule::apply_exemption(
+                client,
+                term.as_deref(),
+                &course,
+                &reason,
+            )
+            .await
+            .with_context(|| format!("failed to apply exemption for {course}"))?;
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            } else if let Some(application_id) = result.application_id {
+                println!("submitted\t{application_id}");
+            } else {
+                println!("submitted");
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn course_schedule_filters(
+    options: &CourseScheduleQueryOptions,
+) -> Result<Vec<ehall::course_schedule::CourseScheduleFilter>> {
+    let mut filters = Vec::new();
+
+    push_course_schedule_filter(&mut filters, "KCH", options.course_id.as_deref());
+    push_course_schedule_filter(&mut filters, "KCM", options.course_name.as_deref());
+    push_course_schedule_filter(&mut filters, "JXBMC", options.class_name.as_deref());
+    push_course_schedule_filter(&mut filters, "SKJS", options.teacher.as_deref());
+    push_course_schedule_filter(&mut filters, "XXXQDM", options.campus.as_deref());
+    push_course_schedule_filter(&mut filters, "PKDWDM", options.department.as_deref());
+    push_course_schedule_filter(&mut filters, "TXKCLB", options.general_category.as_deref());
+    push_course_schedule_filter(&mut filters, "SKXQ", options.weekday.as_deref());
+    push_course_schedule_filter(&mut filters, "KSJC", options.start_period.as_deref());
+    push_course_schedule_filter(&mut filters, "JSJC", options.end_period.as_deref());
+    push_course_schedule_filter(&mut filters, "SKZC", options.week.as_deref());
+    push_course_schedule_filter(&mut filters, "JXLDM", options.building.as_deref());
+    push_course_schedule_filter(&mut filters, "SKJAS", options.classroom.as_deref());
+
+    for filter in &options.filters {
+        filters.push(parse_course_schedule_filter(filter)?);
+    }
+
+    Ok(filters)
+}
+
+fn push_course_schedule_filter(
+    filters: &mut Vec<ehall::course_schedule::CourseScheduleFilter>,
+    name: &str,
+    value: Option<&str>,
+) {
+    if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
+        filters.push(ehall::course_schedule::CourseScheduleFilter {
+            name: name.to_string(),
+            value: value.to_string(),
+            builder: ehall::course_schedule::infer_filter_builder(name).to_string(),
+        });
+    }
+}
+
+fn parse_course_schedule_filter(
+    filter: &str,
+) -> Result<ehall::course_schedule::CourseScheduleFilter> {
+    let (left, value) = filter
+        .split_once('=')
+        .ok_or_else(|| anyhow!("invalid filter {filter:?}; expected FIELD=VALUE"))?;
+    let (name, builder) = match left.split_once(':') {
+        Some((name, builder)) => (name.trim(), builder.trim()),
+        None => (
+            left.trim(),
+            ehall::course_schedule::infer_filter_builder(left.trim()),
+        ),
+    };
+    let value = value.trim();
+
+    if name.is_empty() || builder.is_empty() || value.is_empty() {
+        return Err(anyhow!(
+            "invalid filter {filter:?}; FIELD, BUILDER, and VALUE must be non-empty"
+        ));
+    }
+
+    Ok(ehall::course_schedule::CourseScheduleFilter {
+        name: name.to_string(),
+        value: value.to_string(),
+        builder: builder.to_string(),
+    })
+}
+
+fn print_course_schedule_row(course: &ehall::course_schedule::CourseSchedule) {
+    println!(
+        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        course.course_id,
+        course.teaching_class_name.as_deref().unwrap_or_default(),
+        course.teachers.as_deref().unwrap_or_default(),
+        course.time_place.as_deref().unwrap_or_default(),
+        course.campus_name.as_deref().unwrap_or_default(),
+        course
+            .credits
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default(),
+        course.department_name.as_deref().unwrap_or_default(),
+        course
+            .student_count
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default(),
+        course.term_name.as_deref().unwrap_or_default()
+    );
+}
+
+fn print_my_course_row(course: &ehall::my_course_schedule::MyCourse) {
+    println!(
+        "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        course.course_id,
+        course.display_course_name(),
+        course.teachers.as_deref().unwrap_or_default(),
+        course.time_place.as_deref().unwrap_or_default(),
+        course.department_name.as_deref().unwrap_or_default(),
+        course
+            .credits
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default(),
+        course.final_exam_info.as_deref().unwrap_or_default()
+    );
+}
+
+fn course_schedules_to_tsv(courses: &[ehall::course_schedule::CourseSchedule]) -> String {
+    let mut tsv = String::from(
+        "课程号\t教学班名称\t上课教师\t时间地点\t校区\t学分\t开课单位\t学生数\t学年学期\t后续调课信息\t上课专业\t上课教室\n",
+    );
+
+    for course in courses {
+        let row = vec![
+            course.course_id.clone(),
+            course
+                .teaching_class_name
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            course.teachers.as_deref().unwrap_or_default().to_string(),
+            course.time_place.as_deref().unwrap_or_default().to_string(),
+            course
+                .campus_name
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            course
+                .credits
+                .as_ref()
+                .and_then(display_value)
+                .unwrap_or_default(),
+            course
+                .department_name
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            course
+                .student_count
+                .as_ref()
+                .and_then(display_value)
+                .unwrap_or_default(),
+            course.term_name.as_deref().unwrap_or_default().to_string(),
+            course
+                .reschedule_info
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            course
+                .student_majors
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            course.classrooms.as_deref().unwrap_or_default().to_string(),
+        ];
+        tsv.push_str(
+            &row.iter()
+                .map(|value| escape_tsv_value(value.as_str()))
+                .collect::<Vec<_>>()
+                .join("\t"),
+        );
+        tsv.push('\n');
+    }
+
+    tsv
+}
+
+fn escape_tsv_value(value: &str) -> String {
+    value.replace(['\t', '\r', '\n'], " ")
 }
 
 fn print_training_program_nodes(
