@@ -76,6 +76,17 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-release-cli-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-cli-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-release-cli-
+
       - name: Build nju-cli
         run: cargo build --locked --release -p cli
 
