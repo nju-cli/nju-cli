@@ -2,6 +2,12 @@
 
 <p align="center">让Agent帮你读通知、看文件、走流程！</p>
 
+<p align="center">
+  <img alt="image" width="20%" src="https://github.com/user-attachments/assets/d78d6040-8262-420d-892b-86d7b04afd16" />
+</p>
+
+
+
 你是否曾疑惑过：
 
 - 我这样选课能毕业吗？
