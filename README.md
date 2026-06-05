@@ -10,9 +10,25 @@
 
 现在，你只需要装上`nju-cli`，然后找个agent问：毕业论文几号交？要交什么？
 
-|                                询问论文要求                                                                            |                      询问毕业要求                                                                                        |
+|                                                      询问论文要求                                                      |                                                      询问毕业要求                                                      |
 | :--------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------: |
 | <img width="100%" alt="image" src="https://github.com/user-attachments/assets/de0576c9-6f95-4814-bf6a-f31fd13fae43" /> | <img width="100%" alt="image" src="https://github.com/user-attachments/assets/bbee4ab4-f631-4bbe-999d-46b7abecc0fb" /> |
 
-
 就搞定啦！
+
+## 安装
+
+### Codex
+
+cli:
+
+```
+codex plugin marketplace add https://github.com/nju-cli/codex-marketplace.git
+codex plugin add nju-cli@nju-cli
+```
+
+app:
+
+1. 在plugin页面，`Built by OpenAI`下拉菜单，添加marketplace：`https://github.com/nju-cli/codex-marketplace.git`
+2. 进入marketplace，安装`nju-cli`
+3.
