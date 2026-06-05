@@ -23,6 +23,9 @@ jobs:
           - os: macos-14
             name: macos-aarch64
             artifact: nju-cli-macos-aarch64.tar.gz
+          - os: macos-13
+            name: macos-x86_64
+            artifact: nju-cli-macos-x86_64.tar.gz
 
     steps:
       - uses: actions/checkout@v4
@@ -85,3 +88,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "${GITHUB_REF_NAME}" dist/* --verify-tag --title "${GITHUB_REF_NAME}" --notes "Automated nju-cli release."
+
+      - name: Sync binaries into Codex marketplace
+        if: ${{ secrets.MARKETPLACE_SYNC_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.MARKETPLACE_SYNC_TOKEN }}
+        run: |
+          gh workflow run sync-cli-binaries.yml \
+            --repo nju-cli/codex-marketplace \
+            --ref main \
+            -f release_tag="${GITHUB_REF_NAME}"
