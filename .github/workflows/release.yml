@@ -122,3 +122,16 @@ jobs:
             --repo nju-cli/codex-marketplace \
             --ref main \
             -f release_tag="${GITHUB_REF_NAME}"
+
+      - name: Sync binaries into Claude Cowork marketplace
+        env:
+          GH_TOKEN: ${{ secrets.MARKETPLACE_SYNC_TOKEN }}
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "MARKETPLACE_SYNC_TOKEN is not set; skip Claude marketplace sync trigger."
+            exit 0
+          fi
+          gh workflow run sync-cli-binaries.yml \
+            --repo nju-cli/claude-marketplace \
+            --ref main \
+            -f release_tag="${GITHUB_REF_NAME}"
