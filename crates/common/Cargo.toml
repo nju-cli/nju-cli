@@ -5,8 +5,12 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+anyhow = "1"
+html-to-markdown-rs = "3.6.0-rc.12"
 my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }
-tokio = { version = "1", features = ["sync"] }
+regex = "1"
+reqwest = { version = "0.12" }
+tokio = { workspace = true, features = ["sync"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
