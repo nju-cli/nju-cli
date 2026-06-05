@@ -82,9 +82,11 @@ jobs:
           merge-multiple: true
 
       - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" dist/* --repo "${GITHUB_REPOSITORY}" --verify-tag --title "${GITHUB_REF_NAME}" --notes "Automated nju-cli release."
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          name: ${{ github.ref_name }}
+          body: Automated nju-cli release.
 
       - name: Sync binaries into Codex marketplace
         env:
