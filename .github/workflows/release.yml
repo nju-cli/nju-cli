@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-nix:
+    name: Build ${{ matrix.name }} with Nix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x86_64
+            artifact: nju-cli-linux-x86_64.tar.gz
+          - os: macos-14
+            name: macos-aarch64
+            artifact: nju-cli-macos-aarch64.tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v14
+
+      - name: Build nju-cli
+        run: nix build .#nju-cli
+
+      - name: Package binary
+        run: |
+          mkdir -p dist
+          tar -C result/bin -czf "dist/${{ matrix.artifact }}" nju-cli
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  build-windows:
+    name: Build windows-x86_64 with Cargo
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build nju-cli
+        run: cargo build --locked --release -p cli
+
+      - name: Package binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path target/release/nju-cli.exe -DestinationPath dist/nju-cli-windows-x86_64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nju-cli-windows-x86_64.zip
+          path: dist/nju-cli-windows-x86_64.zip
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - build-nix
+      - build-windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/* --verify-tag --title "${GITHUB_REF_NAME}" --notes "Automated nju-cli release."

@@ -63,48 +63,18 @@
           doCheck = false;
         };
 
-        fileSetForCrate =
-          crate:
-          lib.fileset.toSource {
-            root = ./.;
-            fileset = lib.fileset.unions [
-              ./Cargo.toml
-              ./Cargo.lock
-              (craneLib.fileset.commonCargoSources ./crates/my-common)
-              (craneLib.fileset.commonCargoSources ./crates/my-workspace-hack)
-              (craneLib.fileset.commonCargoSources crate)
-            ];
-          };
-
-        # Build the top-level crates of the workspace as individual derivations.
-        # This allows consumers to only depend on (and build) only what they need.
-        # Though it is possible to build the entire workspace as a single derivation,
-        # so this is left up to you on how to organize things
-        #
-        # Note that the cargo workspace must define `workspace.members` using wildcards,
-        # otherwise, omitting a crate (like we do below) will result in errors since
-        # cargo won't be able to find the sources for all members.
-        my-cli = craneLib.buildPackage (
+        nju-cli = craneLib.buildPackage (
           individualCrateArgs
           // {
-            pname = "my-cli";
-            cargoExtraArgs = "-p my-cli";
-            src = fileSetForCrate ./crates/my-cli;
-          }
-        );
-        my-server = craneLib.buildPackage (
-          individualCrateArgs
-          // {
-            pname = "my-server";
-            cargoExtraArgs = "-p my-server";
-            src = fileSetForCrate ./crates/my-server;
+            pname = "nju-cli";
+            cargoExtraArgs = "-p cli";
           }
         );
       in
       {
         checks = {
           # Build the crates as part of `nix flake check` for convenience
-          inherit my-cli my-server;
+          inherit nju-cli;
 
           # Run clippy (and deny all warnings) on the workspace source,
           # again, reusing the dependency artifacts from above.
@@ -184,16 +154,15 @@
         };
 
         packages = {
-          inherit my-cli my-server;
+          inherit nju-cli;
+          default = nju-cli;
         };
 
         apps = {
-          my-cli = flake-utils.lib.mkApp {
-            drv = my-cli;
+          nju-cli = flake-utils.lib.mkApp {
+            drv = nju-cli;
           };
-          my-server = flake-utils.lib.mkApp {
-            drv = my-server;
-          };
+          default = self.apps.${system}.nju-cli;
         };
 
         devShells.default = craneLib.devShell {
