@@ -1,6 +1,16 @@
 {
   description = "Build a cargo workspace";
 
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-binary-cache.ken.com.im/nju-cli"
+    ];
+    extra-trusted-public-keys = [
+      "nju-cli-cache-1:qG9SW6IO+FJgaSAZraau16eX5aKE+umrhI9oV+K1aHM="
+      "ken.com.im:br/oG6ywHr+tGvmUpZEA5mVYSNZgrNrFflazAEI+AK4="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
