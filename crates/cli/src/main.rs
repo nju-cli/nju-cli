@@ -2,6 +2,8 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 mod academic_affairs;
+mod auth;
+mod ehall;
 mod exchange_system;
 
 #[derive(Debug, Parser)]
@@ -14,6 +16,13 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// 登录统一认证并缓存 CASTGC cookie。
+    Login(auth::LoginCommand),
+    /// 需要 ehall 登录态的服务。
+    Ehall {
+        #[command(subcommand)]
+        command: ehall::EhallCommand,
+    },
     /// 教务网公告通知。
     #[command(name = "academic-affairs")]
     AcademicAffairs {
@@ -34,6 +43,8 @@ async fn main() -> Result<()> {
     let client = reqwest::Client::new();
 
     match cli.command {
+        Command::Login(command) => auth::login(command).await?,
+        Command::Ehall { command } => ehall::handle(command).await?,
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
     }
