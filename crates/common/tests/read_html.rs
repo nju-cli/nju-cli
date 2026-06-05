@@ -74,9 +74,12 @@ fn keeps_angle_wrapped_image_urls() {
 #[tokio::test]
 async fn jw_page_contains_absolutized_image_url() {
     let client = reqwest::Client::new();
-    let markdown = read_html_page(&client, "https://jw.nju.edu.cn/bd/07/c26263a834823/page.htm")
-        .await
-        .unwrap();
+    let markdown = read_html_page(
+        &client,
+        "https://jw.nju.edu.cn/bd/07/c26263a834823/page.htm",
+    )
+    .await
+    .unwrap();
 
     assert!(
         markdown.contains("https://jw.nju.edu.cn/_upload/article/images/f9/8b/a448dbf84d1393c91f184df2ada5/7a4a35d8-2f41-4e65-ba98-999d97a2433c.png"),
@@ -87,9 +90,12 @@ async fn jw_page_contains_absolutized_image_url() {
 #[tokio::test]
 async fn jw_page_contains_absolutized_pdf_url() {
     let client = reqwest::Client::new();
-    let markdown = read_html_page(&client, "https://jw.nju.edu.cn/b1/37/c26263a831799/page.htm")
-        .await
-        .unwrap();
+    let markdown = read_html_page(
+        &client,
+        "https://jw.nju.edu.cn/b1/37/c26263a831799/page.htm",
+    )
+    .await
+    .unwrap();
 
     assert!(
         markdown.contains("https://jw.nju.edu.cn/_upload/article/files/46/4f/3c03ddbe4a819cf5a89a5da308c8/cc499c20-f59f-4fca-9853-5bfc3b442ebc.pdf"),

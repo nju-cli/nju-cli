@@ -1,0 +1,13 @@
+[package]
+name = "d4ocr-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tract-onnx = "0.17"
+image = "0.24"
+serde = "1.0"
+serde_with = "2.2"
+enum_dispatch = "0.3"

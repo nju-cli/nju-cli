@@ -5,12 +5,19 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+aes = "0.8"
 anyhow = "1"
+base64 = "0.22"
+cbc = { version = "0.1", features = ["alloc"] }
+d4ocr-rust = { path = "../d4ocr-rust" }
 html-to-markdown-rs = "3.6.0-rc.12"
+image = "0.24"
 my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }
 regex = "1"
-reqwest = { version = "0.12" }
-tokio = { workspace = true, features = ["sync"] }
+reqwest = { version = "0.12", features = ["cookies"] }
+scraper = "0.24"
+tokio = { workspace = true, features = ["fs", "sync"] }
 
 [dev-dependencies]
+dotenv = "0.15"
 tokio = { workspace = true, features = ["macros", "rt"] }
