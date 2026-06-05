@@ -22,7 +22,7 @@
 
 cli:
 
-```
+```bash
 codex plugin marketplace add https://github.com/nju-cli/codex-marketplace.git
 codex plugin add nju-cli@nju-cli
 ```
@@ -31,4 +31,20 @@ app:
 
 1. 在plugin页面，`Built by OpenAI`下拉菜单，添加marketplace：`https://github.com/nju-cli/codex-marketplace.git`
 2. 进入marketplace，安装`nju-cli`
-3.
+
+### Claude
+
+app:
+
+1. 左侧边栏点击customize
+2. personal plugins，点击加号，create plugin，add marketplace
+3. 选择 Add from a repository
+4. 填入URL：`https://github.com/nju-cli/claude-marketplace`，点击sync
+5. 安装`nju-cli`
+
+cli:
+
+```bash
+claude plugin marketplace add https://github.com/nju-cli/claude-marketplace
+claude plugin install nju-cli@nju-cli
+```
