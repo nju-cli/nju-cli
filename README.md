@@ -18,8 +18,8 @@
 |                                                      毕业论文ddl什么时候                                                  |                                                      毕业要交什么                                                      |
 | :--------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------: |
 | <img width="100%" alt="image" src="https://github.com/user-attachments/assets/de0576c9-6f95-4814-bf6a-f31fd13fae43" /> | <img width="100%" alt="image" src="https://github.com/user-attachments/assets/bbee4ab4-f631-4bbe-999d-46b7abecc0fb" /> |
-| 我的选课够毕业吗 |  |
-| <img width="927" height="910" alt="image" src="https://github.com/user-attachments/assets/3258646e-87f3-40eb-8c73-a98a454d9d60" /> | |
+| 我的选课够毕业吗 | 怎么入党 |
+| <img width="927" height="910" alt="image" src="https://github.com/user-attachments/assets/3258646e-87f3-40eb-8c73-a98a454d9d60" /> | <img width="949" height="1389" alt="image" src="https://github.com/user-attachments/assets/94d65e26-569a-4141-b464-e076852dda24" /> |
 
 
 就搞定啦！
