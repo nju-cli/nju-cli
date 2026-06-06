@@ -54,7 +54,7 @@
         muslCraneLib = (crane.mkLib pkgs).overrideToolchain (
           p:
           p.rust-bin.stable.latest.default.override {
-            targets = [ "x86_64-unknown-linux-musl" ];
+            targets = [ muslTarget ];
           }
         );
         src = craneLib.cleanCargoSource ./.;
@@ -103,8 +103,12 @@
           }
         );
 
-        muslTarget = "x86_64-unknown-linux-musl";
-        muslTargetEnv = "X86_64_UNKNOWN_LINUX_MUSL";
+        muslTarget = {
+          x86_64-linux = "x86_64-unknown-linux-musl";
+          aarch64-linux = "aarch64-unknown-linux-musl";
+        }.${system};
+        muslTargetEnv = lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] muslTarget);
+        muslTargetEnvLower = builtins.replaceStrings [ "-" ] [ "_" ] muslTarget;
         muslCc = pkgs.pkgsStatic.stdenv.cc;
         muslTargetPrefix = muslCc.targetPrefix;
         muslLinker = "${muslCc}/bin/${muslTargetPrefix}gcc";
@@ -118,11 +122,11 @@
           "CARGO_TARGET_${muslTargetEnv}_LINKER" = muslLinker;
 
           # vendored OpenSSL 也会编 C 代码，必须使用 musl toolchain。
-          CC_x86_64_unknown_linux_musl = muslLinker;
+          "CC_${muslTargetEnvLower}" = muslLinker;
           "CC_${muslTarget}" = muslLinker;
-          AR_x86_64_unknown_linux_musl = muslAr;
+          "AR_${muslTargetEnvLower}" = muslAr;
           "AR_${muslTarget}" = muslAr;
-          RANLIB_x86_64_unknown_linux_musl = muslRanlib;
+          "RANLIB_${muslTargetEnvLower}" = muslRanlib;
           "RANLIB_${muslTarget}" = muslRanlib;
 
           nativeBuildInputs = commonArgs.nativeBuildInputs ++ [
