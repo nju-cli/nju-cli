@@ -29,6 +29,12 @@ pub enum EhallCommand {
         #[command(subcommand)]
         command: MyCourseScheduleCommand,
     },
+    /// 我的成绩查询。
+    #[command(name = "grades")]
+    Grades {
+        #[command(subcommand)]
+        command: GradeCommand,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -145,6 +151,30 @@ pub enum MyCourseScheduleCommand {
     },
 }
 
+#[derive(Debug, Subcommand)]
+pub enum GradeCommand {
+    /// 列出成绩查询默认展示的学期。
+    Terms {
+        /// 输出完整 JSON。
+        #[arg(long)]
+        json: bool,
+    },
+    /// 列出一页成绩。
+    List(ListGradesOptions),
+    /// 下载所有匹配成绩。
+    Download(DownloadGradesOptions),
+    /// 列出一页四六级成绩。
+    Cet(ListCetGradesOptions),
+    /// 下载所有匹配四六级成绩。
+    #[command(name = "download-cet")]
+    DownloadCet(DownloadCetGradesOptions),
+    /// 列出一页体测成绩。
+    Fitness(ListFitnessGradesOptions),
+    /// 下载所有体测成绩。
+    #[command(name = "download-fitness")]
+    DownloadFitness(DownloadFitnessGradesOptions),
+}
+
 #[derive(Debug, Args)]
 pub struct ListMyCoursesOptions {
     /// 学年学期代码，如 2025-2026-2；默认当前学期。
@@ -159,6 +189,135 @@ pub struct ListMyCoursesOptions {
     /// 输出完整 JSON。
     #[arg(long)]
     json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ListGradesOptions {
+    /// 页码，从 1 开始。
+    #[arg(long, default_value_t = 1)]
+    page: u64,
+    /// 每页数量。
+    #[arg(long, default_value_t = 20)]
+    page_size: u64,
+    /// 输出完整 JSON。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: GradeQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct DownloadGradesOptions {
+    /// 每次请求页大小。
+    #[arg(long, default_value_t = 100)]
+    page_size: u64,
+    /// 输出路径。默认按输出格式写到 grades.tsv 或 grades.json。
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    /// 下载为 JSON；默认下载 TSV。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: GradeQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct GradeQueryOptions {
+    /// 学年学期代码，如 2025-2026-2；可传多个。不传则使用页面默认展示学期。
+    #[arg(long = "term")]
+    terms: Vec<String>,
+    /// 课程名 KCM，模糊匹配。
+    #[arg(long)]
+    course_name: Option<String>,
+    /// 课程号 KCH，模糊匹配。
+    #[arg(long)]
+    course_id: Option<String>,
+    /// 只看及格课程。
+    #[arg(long, conflicts_with = "failed")]
+    passed: bool,
+    /// 只看未及格课程。
+    #[arg(long, conflicts_with = "passed")]
+    failed: bool,
+    /// 显示最高成绩。
+    #[arg(long)]
+    show_max_grade: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ListCetGradesOptions {
+    /// 页码，从 1 开始。
+    #[arg(long, default_value_t = 1)]
+    page: u64,
+    /// 每页数量。
+    #[arg(long, default_value_t = 100)]
+    page_size: u64,
+    /// 输出完整 JSON。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: CetGradeQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct DownloadCetGradesOptions {
+    /// 每次请求页大小。
+    #[arg(long, default_value_t = 100)]
+    page_size: u64,
+    /// 输出路径。默认按输出格式写到 cet-grades.tsv 或 cet-grades.json。
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    /// 下载为 JSON；默认下载 TSV。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: CetGradeQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct CetGradeQueryOptions {
+    /// 学年学期代码，如 2023-2024-1；可传多个。
+    #[arg(long = "term")]
+    terms: Vec<String>,
+    /// 考试项目代码，如 CET4、CET6；不传默认查询 CET4 和 CET6。
+    #[arg(long = "exam-type")]
+    exam_types: Vec<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ListFitnessGradesOptions {
+    /// 页码，从 1 开始。
+    #[arg(long, default_value_t = 1)]
+    page: u64,
+    /// 每页数量。
+    #[arg(long, default_value_t = 100)]
+    page_size: u64,
+    /// 输出完整 JSON。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: FitnessGradeQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct DownloadFitnessGradesOptions {
+    /// 每次请求页大小。
+    #[arg(long, default_value_t = 100)]
+    page_size: u64,
+    /// 输出路径。默认按输出格式写到 fitness-grades.tsv 或 fitness-grades.json。
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    /// 下载为 JSON；默认下载 TSV。
+    #[arg(long)]
+    json: bool,
+    #[command(flatten)]
+    query: FitnessGradeQueryOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct FitnessGradeQueryOptions {
+    /// 学年学期代码，如 2025-2026-2；可传多个。
+    #[arg(long = "term")]
+    terms: Vec<String>,
 }
 
 #[derive(Debug, Args)]
@@ -282,6 +441,14 @@ pub async fn handle(command: EhallCommand) -> Result<()> {
             .await
             .context("failed to prepare ehall my course schedule session; try running `nju-cli login` again")?;
             handle_my_course_schedule(command, &client).await
+        }
+        EhallCommand::Grades { command } => {
+            ehall::grade_query::prepare_session(&client, ehall::grade_query::default_role_id())
+                .await
+                .context(
+                    "failed to prepare ehall grade query session; try running `nju-cli login` again",
+                )?;
+            handle_grades(command, &client).await
         }
     }
 }
@@ -630,6 +797,200 @@ async fn handle_my_course_schedule(
     Ok(())
 }
 
+async fn handle_grades(command: GradeCommand, client: &reqwest::Client) -> Result<()> {
+    match command {
+        GradeCommand::Terms { json } => {
+            let terms = ehall::grade_query::list_recent_terms(client)
+                .await
+                .context("failed to list grade query terms")?;
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&terms)?);
+            } else {
+                for term in terms {
+                    println!("{}\t{}", term.id, term.display_name());
+                }
+            }
+        }
+        GradeCommand::List(options) => {
+            let passed = grade_passed_filter(&options.query);
+            let page = ehall::grade_query::list_grades(
+                client,
+                &ehall::grade_query::GradeListOptions {
+                    terms: options.query.terms,
+                    course_name: options.query.course_name,
+                    course_id: options.query.course_id,
+                    passed,
+                    show_max_grade: options.query.show_max_grade,
+                    page_number: options.page,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to list grades")?;
+
+            if options.json {
+                println!("{}", serde_json::to_string_pretty(&page)?);
+            } else {
+                for grade in page.rows {
+                    print_grade_row(&grade);
+                }
+            }
+        }
+        GradeCommand::Download(options) => {
+            let passed = grade_passed_filter(&options.query);
+            let grades = ehall::grade_query::list_all_grades(
+                client,
+                &ehall::grade_query::GradeListOptions {
+                    terms: options.query.terms,
+                    course_name: options.query.course_name,
+                    course_id: options.query.course_id,
+                    passed,
+                    show_max_grade: options.query.show_max_grade,
+                    page_number: 1,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to download grades")?;
+            let output = options.output.unwrap_or_else(|| {
+                if options.json {
+                    PathBuf::from("grades.json")
+                } else {
+                    PathBuf::from("grades.tsv")
+                }
+            });
+
+            if options.json {
+                let json =
+                    serde_json::to_string_pretty(&grades).context("failed to serialize grades")?;
+                std::fs::write(&output, json)
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            } else {
+                std::fs::write(&output, grades_to_tsv(&grades))
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            }
+            println!("{} {}", grades.len(), output.display());
+        }
+        GradeCommand::Cet(options) => {
+            let page = ehall::grade_query::list_cet_grades(
+                client,
+                &ehall::grade_query::CetGradeListOptions {
+                    terms: options.query.terms,
+                    exam_types: options.query.exam_types,
+                    page_number: options.page,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to list CET grades")?;
+
+            if options.json {
+                println!("{}", serde_json::to_string_pretty(&page)?);
+            } else {
+                for grade in page.rows {
+                    print_external_grade_row(&grade);
+                }
+            }
+        }
+        GradeCommand::DownloadCet(options) => {
+            let grades = ehall::grade_query::list_all_cet_grades(
+                client,
+                &ehall::grade_query::CetGradeListOptions {
+                    terms: options.query.terms,
+                    exam_types: options.query.exam_types,
+                    page_number: 1,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to download CET grades")?;
+            let output = options.output.unwrap_or_else(|| {
+                if options.json {
+                    PathBuf::from("cet-grades.json")
+                } else {
+                    PathBuf::from("cet-grades.tsv")
+                }
+            });
+
+            if options.json {
+                let json = serde_json::to_string_pretty(&grades)
+                    .context("failed to serialize CET grades")?;
+                std::fs::write(&output, json)
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            } else {
+                std::fs::write(&output, external_grades_to_tsv(&grades))
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            }
+            println!("{} {}", grades.len(), output.display());
+        }
+        GradeCommand::Fitness(options) => {
+            let page = ehall::grade_query::list_cet_grades(
+                client,
+                &ehall::grade_query::CetGradeListOptions {
+                    terms: options.query.terms,
+                    exam_types: vec![ehall::grade_query::FITNESS_EXAM_TYPE.to_string()],
+                    page_number: options.page,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to list fitness grades")?;
+
+            if options.json {
+                println!("{}", serde_json::to_string_pretty(&page)?);
+            } else {
+                for grade in page.rows {
+                    print_external_grade_row(&grade);
+                }
+            }
+        }
+        GradeCommand::DownloadFitness(options) => {
+            let grades = ehall::grade_query::list_all_cet_grades(
+                client,
+                &ehall::grade_query::CetGradeListOptions {
+                    terms: options.query.terms,
+                    exam_types: vec![ehall::grade_query::FITNESS_EXAM_TYPE.to_string()],
+                    page_number: 1,
+                    page_size: options.page_size,
+                },
+            )
+            .await
+            .context("failed to download fitness grades")?;
+            let output = options.output.unwrap_or_else(|| {
+                if options.json {
+                    PathBuf::from("fitness-grades.json")
+                } else {
+                    PathBuf::from("fitness-grades.tsv")
+                }
+            });
+
+            if options.json {
+                let json = serde_json::to_string_pretty(&grades)
+                    .context("failed to serialize fitness grades")?;
+                std::fs::write(&output, json)
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            } else {
+                std::fs::write(&output, external_grades_to_tsv(&grades))
+                    .with_context(|| format!("failed to write {}", output.display()))?;
+            }
+            println!("{} {}", grades.len(), output.display());
+        }
+    }
+
+    Ok(())
+}
+
+fn grade_passed_filter(options: &GradeQueryOptions) -> Option<bool> {
+    if options.passed {
+        Some(true)
+    } else if options.failed {
+        Some(false)
+    } else {
+        None
+    }
+}
+
 fn course_schedule_filters(
     options: &CourseScheduleQueryOptions,
 ) -> Result<Vec<ehall::course_schedule::CourseScheduleFilter>> {
@@ -738,6 +1099,48 @@ fn print_my_course_row(course: &ehall::my_course_schedule::MyCourse) {
     );
 }
 
+fn print_grade_row(grade: &ehall::grade_query::Grade) {
+    println!(
+        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        grade.term_name.as_deref().unwrap_or(&grade.term_id),
+        grade.course_id,
+        grade.course_name,
+        grade
+            .credits
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default(),
+        grade.course_nature_name.as_deref().unwrap_or_default(),
+        grade
+            .total_grade
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default(),
+        grade.passed_name.as_deref().unwrap_or_default(),
+        grade
+            .transcript_mark
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default()
+    );
+}
+
+fn print_external_grade_row(grade: &ehall::grade_query::CetGrade) {
+    println!(
+        "{}\t{}\t{}\t{}\t{}\t{}",
+        grade.term_name.as_deref().unwrap_or(&grade.term_id),
+        grade.exam_type_name,
+        grade
+            .score
+            .as_ref()
+            .and_then(display_value)
+            .unwrap_or_default(),
+        grade.passed_name.as_deref().unwrap_or_default(),
+        grade.exam_date.as_deref().unwrap_or_default(),
+        grade.department_name.as_deref().unwrap_or_default()
+    );
+}
+
 fn course_schedules_to_tsv(courses: &[ehall::course_schedule::CourseSchedule]) -> String {
     let mut tsv = String::from(
         "课程号\t教学班名称\t上课教师\t时间地点\t校区\t学分\t开课单位\t学生数\t学年学期\t后续调课信息\t上课专业\t上课教室\n",
@@ -785,6 +1188,96 @@ fn course_schedules_to_tsv(courses: &[ehall::course_schedule::CourseSchedule]) -
                 .unwrap_or_default()
                 .to_string(),
             course.classrooms.as_deref().unwrap_or_default().to_string(),
+        ];
+        tsv.push_str(
+            &row.iter()
+                .map(|value| escape_tsv_value(value.as_str()))
+                .collect::<Vec<_>>()
+                .join("\t"),
+        );
+        tsv.push('\n');
+    }
+
+    tsv
+}
+
+fn grades_to_tsv(grades: &[ehall::grade_query::Grade]) -> String {
+    let mut tsv = String::from(
+        "学年学期\t课程号\t课程名\t英文课程名\t学分\t课程性质\t总成绩\t是否及格\t成绩单标记\n",
+    );
+
+    for grade in grades {
+        let row = vec![
+            grade
+                .term_name
+                .as_deref()
+                .unwrap_or(&grade.term_id)
+                .to_string(),
+            grade.course_id.clone(),
+            grade.course_name.clone(),
+            grade
+                .english_course_name
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            grade
+                .credits
+                .as_ref()
+                .and_then(display_value)
+                .unwrap_or_default(),
+            grade
+                .course_nature_name
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            grade
+                .total_grade
+                .as_ref()
+                .and_then(display_value)
+                .unwrap_or_default(),
+            grade.passed_name.as_deref().unwrap_or_default().to_string(),
+            grade
+                .transcript_mark
+                .as_ref()
+                .and_then(display_value)
+                .unwrap_or_default(),
+        ];
+        tsv.push_str(
+            &row.iter()
+                .map(|value| escape_tsv_value(value.as_str()))
+                .collect::<Vec<_>>()
+                .join("\t"),
+        );
+        tsv.push('\n');
+    }
+
+    tsv
+}
+
+fn external_grades_to_tsv(grades: &[ehall::grade_query::CetGrade]) -> String {
+    let mut tsv = String::from("学年学期\t考试项目\t成绩\t是否通过\t考试日期\t院系\t备注\n");
+
+    for grade in grades {
+        let row = vec![
+            grade
+                .term_name
+                .as_deref()
+                .unwrap_or(&grade.term_id)
+                .to_string(),
+            grade.exam_type_name.clone(),
+            grade
+                .score
+                .as_ref()
+                .and_then(display_value)
+                .unwrap_or_default(),
+            grade.passed_name.as_deref().unwrap_or_default().to_string(),
+            grade.exam_date.as_deref().unwrap_or_default().to_string(),
+            grade
+                .department_name
+                .as_deref()
+                .unwrap_or_default()
+                .to_string(),
+            grade.remark.as_deref().unwrap_or_default().to_string(),
         ];
         tsv.push_str(
             &row.iter()

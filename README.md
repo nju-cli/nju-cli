@@ -6,8 +6,6 @@
   <img alt="image" width="20%" src="https://github.com/user-attachments/assets/d78d6040-8262-420d-892b-86d7b04afd16" />
 </p>
 
-
-
 你是否曾疑惑过：
 
 - 我这样选课能毕业吗？
@@ -22,6 +20,10 @@
 | <img width="100%" alt="image" src="https://github.com/user-attachments/assets/de0576c9-6f95-4814-bf6a-f31fd13fae43" /> | <img width="100%" alt="image" src="https://github.com/user-attachments/assets/bbee4ab4-f631-4bbe-999d-46b7abecc0fb" /> |
 
 就搞定啦！
+
+## 支持的能力
+
+见[Skill](./nju-cli-skills/SKILL.md)
 
 ## 安装
 
