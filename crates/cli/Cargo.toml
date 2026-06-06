@@ -14,6 +14,7 @@ anyhow = "1"
 common = { path = "../common" }
 ehall = { path = "../ehall" }
 exchange-system = { path = "../exchange-system" }
+youth-league = { path = "../youth-league" }
 clap = { version = "4", features = ["derive"] }
 my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }
 platform-dirs = "0.3"

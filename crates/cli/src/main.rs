@@ -5,6 +5,7 @@ mod academic_affairs;
 mod auth;
 mod ehall;
 mod exchange_system;
+mod youth_league;
 
 #[derive(Debug, Parser)]
 #[command(name = "nju-cli")]
@@ -35,6 +36,12 @@ enum Command {
         #[command(subcommand)]
         command: exchange_system::ExchangeSystemCommand,
     },
+    /// 南大团委最新动态和公告通知。
+    #[command(name = "youth-league")]
+    YouthLeague {
+        #[command(subcommand)]
+        command: youth_league::YouthLeagueCommand,
+    },
 }
 
 #[tokio::main]
@@ -47,6 +54,7 @@ async fn main() -> Result<()> {
         Command::Ehall { command } => ehall::handle(command).await?,
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
+        Command::YouthLeague { command } => youth_league::handle(command, &client).await?,
     }
 
     Ok(())
