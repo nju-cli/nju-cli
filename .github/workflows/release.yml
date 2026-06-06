@@ -152,3 +152,16 @@ jobs:
             --repo nju-cli/claude-marketplace \
             --ref main \
             -f release_tag="${GITHUB_REF_NAME}"
+
+      - name: Sync binaries into OpenCode npm package
+        env:
+          GH_TOKEN: ${{ secrets.MARKETPLACE_SYNC_TOKEN }}
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "MARKETPLACE_SYNC_TOKEN is not set; skip OpenCode package sync trigger."
+            exit 0
+          fi
+          gh workflow run sync-cli-binaries.yml \
+            --repo nju-cli/opencode-nju-cli \
+            --ref main \
+            -f release_tag="${GITHUB_REF_NAME}"
