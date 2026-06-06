@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
@@ -8,17 +11,18 @@ const APP_ID: &str = "4768574631264620";
 const DEFAULT_ROLE_ID: &str = "20230211151103310";
 const APP_SHOW_URL: &str = "https://ehall.nju.edu.cn/appShow";
 const APP_INDEX_URL: &str = "https://ehallapp.nju.edu.cn/jwapp/sys/cjcx/*default/index.do";
+const APP_INDEX_REFERER: &str =
+    "https://ehallapp.nju.edu.cn/jwapp/sys/cjcx/*default/index.do?EMAP_LANG=zh&THEME=";
 const CHANGE_ROLE_URL: &str =
     "https://ehallapp.nju.edu.cn/jwapp/sys/funauthapp/api/changeAppRole/cjcx";
 const CURRENT_TERM_URL: &str =
     "https://ehallapp.nju.edu.cn/jwapp/sys/cjcx/modules/cjcx/cxdqxnxqdm.do";
 const RECENT_TERMS_URL: &str =
-    "https://ehallapp.nju.edu.cn/jwapp/sys/cjcx/modules/cjcx/cxdqxnxqhsygxnxq.do";
+    "https://ehallapp.nju.edu.cn/jwapp/code/1daca2c6-abd2-4278-af49-5af038db0926.do";
 const GRADE_LIST_URL: &str = "https://ehallapp.nju.edu.cn/jwapp/sys/cjcx/modules/cjcx/cxxscjd.do";
 const CET_GRADE_LIST_URL: &str =
     "https://ehallapp.nju.edu.cn/jwapp/sys/cjcx/modules/cjcx/cxsljcj.do";
 const CURRENT_TERM_ACTION: &str = "cxdqxnxqdm";
-const RECENT_TERMS_ACTION: &str = "cxdqxnxqhsygxnxq";
 const GRADE_LIST_ACTION: &str = "cxxscjd";
 const CET_GRADE_LIST_ACTION: &str = "cxsljcj";
 const GRADE_ORDER: &str = "-XNXQDM,+KCH,+KCXZ";
@@ -193,6 +197,36 @@ struct EhallEnvelope<T> {
     code: String,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(bound(deserialize = "T: Deserialize<'de>"))]
+struct EhallRowsEnvelope<T> {
+    datas: HashMap<String, EhallRows<T>>,
+    code: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(bound(deserialize = "T: Deserialize<'de>"))]
+struct EhallRows<T> {
+    #[serde(default)]
+    rows: Vec<T>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodeGradeTerm {
+    id: String,
+    name: Option<String>,
+}
+
+impl From<CodeGradeTerm> for GradeTerm {
+    fn from(term: CodeGradeTerm) -> Self {
+        Self {
+            id: term.id,
+            name: term.name,
+            extra: Map::new(),
+        }
+    }
+}
+
 pub async fn get_current_term(client: &reqwest::Client) -> Result<GradeTerm> {
     let page: EhallPage<GradeTerm> =
         post_page(client, CURRENT_TERM_URL, &[], CURRENT_TERM_ACTION).await?;
@@ -204,10 +238,9 @@ pub async fn get_current_term(client: &reqwest::Client) -> Result<GradeTerm> {
 }
 
 pub async fn list_recent_terms(client: &reqwest::Client) -> Result<Vec<GradeTerm>> {
-    let page: EhallPage<GradeTerm> =
-        post_page(client, RECENT_TERMS_URL, &[], RECENT_TERMS_ACTION).await?;
+    let rows: EhallRows<CodeGradeTerm> = get_rows(client, RECENT_TERMS_URL, "code").await?;
 
-    Ok(page.rows)
+    Ok(rows.rows.into_iter().map(GradeTerm::from).collect())
 }
 
 pub async fn list_grades(
@@ -421,6 +454,51 @@ fn cet_grade_query_setting(options: &CetGradeListOptions) -> Vec<Value> {
     }));
 
     settings
+}
+
+async fn get_rows<T>(client: &reqwest::Client, url: &str, action: &str) -> Result<EhallRows<T>>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let cache_bust = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("system clock is earlier than UNIX epoch")?
+        .as_millis()
+        .to_string();
+    let body = client
+        .get(url)
+        .query(&[("_", cache_bust.as_str())])
+        .header("Accept", "application/json, text/javascript, */*; q=0.01")
+        .header(
+            "Content-Type",
+            "application/x-www-form-urlencoded; charset=UTF-8",
+        )
+        .header("X-Requested-With", "XMLHttpRequest")
+        .header("Referer", APP_INDEX_REFERER)
+        .send()
+        .await
+        .with_context(|| format!("failed to request {url}"))?
+        .error_for_status()
+        .with_context(|| format!("{url} returned an error status"))?
+        .text()
+        .await
+        .with_context(|| format!("failed to read {url} response body"))?;
+    let envelope: EhallRowsEnvelope<T> = serde_json::from_str(&body).with_context(|| {
+        format!(
+            "failed to parse {url} response as JSON: response starts with {:?}",
+            body.chars().take(200).collect::<String>()
+        )
+    })?;
+
+    if envelope.code != "0" {
+        return Err(anyhow!("{url} returned application code {}", envelope.code));
+    }
+
+    envelope
+        .datas
+        .into_iter()
+        .find_map(|(key, rows)| (key == action).then_some(rows))
+        .ok_or_else(|| anyhow!("{url} response did not contain data action {action}"))
 }
 
 async fn post_page<T>(

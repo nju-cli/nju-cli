@@ -153,7 +153,7 @@ pub enum MyCourseScheduleCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum GradeCommand {
-    /// 列出成绩查询默认展示的学期。
+    /// 列出所有学期。
     Terms {
         /// 输出完整 JSON。
         #[arg(long)]
