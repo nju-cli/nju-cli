@@ -60,3 +60,17 @@ cli:
 claude plugin marketplace add https://github.com/nju-cli/claude-marketplace
 claude plugin install nju-cli@nju-cli
 ```
+
+### OpenCode
+
+在 `opencode.json` 里添加 npm plugin：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["opencode-nju-cli"]
+}
+```
+
+如需使用 OpenCode native skill，再把 npm 包里的 `skills/nju-cli` 复制到
+`.opencode/skills/nju-cli` 或 `~/.config/opencode/skills/nju-cli`。
