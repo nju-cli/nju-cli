@@ -17,11 +17,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: blacksmith-4vcpu-ubuntu-2404
             name: linux-x86_64
             package: nju-cli-static
             artifact: nju-cli-linux-x86_64.tar.gz
-          - os: macos-14
+          - os: blacksmith-6vcpu-macos-15
             name: macos-aarch64
             package: nju-cli
             artifact: nju-cli-macos-aarch64.tar.gz
