@@ -74,6 +74,8 @@
 
           nativeBuildInputs = [
             pkgs.pkg-config
+            # vendored OpenSSL 的 Configure 脚本需要 perl。
+            pkgs.perl
           ];
 
           # Additional environment variables can be set directly
@@ -101,9 +103,31 @@
           }
         );
 
+        muslTarget = "x86_64-unknown-linux-musl";
+        muslTargetEnv = "X86_64_UNKNOWN_LINUX_MUSL";
+        muslCc = pkgs.pkgsStatic.stdenv.cc;
+        muslTargetPrefix = muslCc.targetPrefix;
+        muslLinker = "${muslCc}/bin/${muslTargetPrefix}gcc";
+        muslBinutils = muslCc.bintools.bintools;
+        muslAr = "${muslBinutils}/bin/${muslTargetPrefix}ar";
+        muslRanlib = "${muslBinutils}/bin/${muslTargetPrefix}ranlib";
+
         muslCommonArgs = commonArgs // {
-          CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
+          CARGO_BUILD_TARGET = muslTarget;
           CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
+          "CARGO_TARGET_${muslTargetEnv}_LINKER" = muslLinker;
+
+          # vendored OpenSSL 也会编 C 代码，必须使用 musl toolchain。
+          CC_x86_64_unknown_linux_musl = muslLinker;
+          "CC_${muslTarget}" = muslLinker;
+          AR_x86_64_unknown_linux_musl = muslAr;
+          "AR_${muslTarget}" = muslAr;
+          RANLIB_x86_64_unknown_linux_musl = muslRanlib;
+          "RANLIB_${muslTarget}" = muslRanlib;
+
+          nativeBuildInputs = commonArgs.nativeBuildInputs ++ [
+            muslCc
+          ];
         };
 
         muslCargoArtifacts = muslCraneLib.buildDepsOnly muslCommonArgs;
