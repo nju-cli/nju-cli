@@ -1,6 +1,9 @@
 # 教务网
 
 ```sh
+# 输出当前全学年教学校历的页面、PDF 和图片链接；不下载、不转文本
+nju-cli academic-affairs calendar
+
 # 列出最近 20 条公告，并缓存公告 ID
 nju-cli academic-affairs list
 

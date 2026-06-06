@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Subcommand)]
 pub enum AcademicAffairsCommand {
+    /// 输出教务网当前全学年校历的 PDF 和图片链接。
+    Calendar,
     /// 列出教务网公告通知，并把公告 id 与 URL 缓存到本地。
     List {
         /// 每页公告数量。
@@ -34,6 +36,22 @@ struct CachedAnnouncement {
 
 pub async fn handle(command: AcademicAffairsCommand, client: &reqwest::Client) -> Result<()> {
     match command {
+        AcademicAffairsCommand::Calendar => {
+            let calendar = academic_affairs::get_calendar(client)
+                .await
+                .context("failed to get academic calendar")?;
+
+            println!("{}", calendar.title);
+            println!("页面：{}", calendar.page_url);
+            println!("PDF：");
+            for url in calendar.pdf_urls {
+                println!("{url}");
+            }
+            println!("图片：");
+            for url in calendar.image_urls {
+                println!("{url}");
+            }
+        }
         AcademicAffairsCommand::List { page_size } => {
             let page = academic_affairs::get_announcements(client, 1, page_size)
                 .await
