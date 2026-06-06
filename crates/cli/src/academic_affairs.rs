@@ -1,6 +1,9 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
-use academic_affairs::{ArticleColumn, article::Article};
+use academic_affairs::{ArticleColumn, DownloadFile, article::Article};
 use anyhow::{Context, Result, anyhow};
 use clap::Subcommand;
 use platform_dirs::AppDirs;
@@ -10,6 +13,11 @@ use serde::{Deserialize, Serialize};
 pub enum AcademicAffairsCommand {
     /// 输出教务网当前全学年校历的 PDF 和图片链接。
     Calendar,
+    /// 下载专区：校历目录、各类表格和各类模板。
+    Downloads {
+        #[command(subcommand)]
+        command: DownloadZoneCommand,
+    },
     /// 教务网公告通知。
     Notifications {
         #[command(subcommand)]
@@ -111,6 +119,56 @@ pub enum ArticleCollectionCommand {
 }
 
 #[derive(Debug, Subcommand)]
+pub enum DownloadZoneCommand {
+    /// 校历目录。
+    #[command(name = "calendar-catalog")]
+    CalendarCatalog {
+        #[command(subcommand)]
+        command: DownloadResourceCommand,
+    },
+    /// 各类表格。
+    Forms {
+        #[command(subcommand)]
+        command: DownloadResourceCommand,
+    },
+    /// 各类模板。
+    Templates {
+        #[command(subcommand)]
+        command: DownloadResourceCommand,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DownloadResourceCommand {
+    /// 列出下载专区条目，并把 id 与 URL 缓存到本地。
+    List {
+        /// 页码，从 1 开始；传 --all 时忽略。
+        #[arg(long, default_value_t = 1)]
+        page: u64,
+        /// 每页条目数量。
+        #[arg(long, default_value_t = 100)]
+        page_size: u64,
+        /// 拉取栏目下所有条目；不传则只拉取指定页。
+        #[arg(long)]
+        all: bool,
+    },
+    /// 下载条目对应的实际附件文件。
+    Download {
+        /// 条目 id 列表；传 --all 时忽略该参数并下载栏目下所有条目。
+        resource_ids: Vec<u64>,
+        /// 下载栏目下所有条目。
+        #[arg(long)]
+        all: bool,
+        /// 拉取所有条目时每页数量。
+        #[arg(long, default_value_t = 100)]
+        page_size: u64,
+        /// 输出目录；默认写到 nju-cli 缓存目录的 academic-affairs/<栏目>。
+        #[arg(short, long)]
+        output_dir: Option<PathBuf>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
 pub enum InstitutionCommand {
     /// 显示部门领导，并列出所有机构。
     List,
@@ -143,6 +201,9 @@ struct CachedArticle {
 pub async fn handle(command: AcademicAffairsCommand, client: &reqwest::Client) -> Result<()> {
     match command {
         AcademicAffairsCommand::Calendar => handle_calendar(client).await?,
+        AcademicAffairsCommand::Downloads { command } => {
+            handle_download_zone(client, command).await?
+        }
         AcademicAffairsCommand::Notifications { command } => {
             handle_notifications(client, command).await?
         }
@@ -283,6 +344,67 @@ async fn handle_article_collection(
                     .await
                     .with_context(|| {
                         format!("failed to download {} {}", column.title(), article.id)
+                    })?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_download_zone(
+    client: &reqwest::Client,
+    command: DownloadZoneCommand,
+) -> Result<()> {
+    match command {
+        DownloadZoneCommand::CalendarCatalog { command } => {
+            handle_download_resources(client, ArticleColumn::CalendarCatalog, command).await?
+        }
+        DownloadZoneCommand::Forms { command } => {
+            handle_download_resources(client, ArticleColumn::Forms, command).await?
+        }
+        DownloadZoneCommand::Templates { command } => {
+            handle_download_resources(client, ArticleColumn::Templates, command).await?
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_download_resources(
+    client: &reqwest::Client,
+    column: ArticleColumn,
+    command: DownloadResourceCommand,
+) -> Result<()> {
+    match command {
+        DownloadResourceCommand::List {
+            page,
+            page_size,
+            all,
+        } => {
+            let articles = list_articles(client, column, page, page_size, all)
+                .await
+                .with_context(|| format!("failed to list {}", column.title()))?;
+            save_articles(&articles, column_cache_file(column)?)?;
+            print_articles(&articles);
+        }
+        DownloadResourceCommand::Download {
+            resource_ids,
+            all,
+            page_size,
+            output_dir,
+        } => {
+            let resources =
+                articles_to_download(client, column, resource_ids, all, page_size).await?;
+            let dir = output_dir.unwrap_or(column_cache_dir(column)?);
+            std::fs::create_dir_all(&dir)
+                .with_context(|| format!("failed to create {}", dir.display()))?;
+
+            for resource in &resources {
+                download_resource_files(client, resource, &dir)
+                    .await
+                    .with_context(|| {
+                        format!("failed to download {} {}", column.title(), resource.id)
                     })?;
             }
         }
@@ -444,6 +566,122 @@ async fn download_article(
     Ok(())
 }
 
+async fn download_resource_files(
+    client: &reqwest::Client,
+    article: &CachedArticle,
+    dir: &std::path::Path,
+) -> Result<()> {
+    let files = academic_affairs::list_article_download_files(client, &article.url)
+        .await
+        .with_context(|| format!("failed to list downloadable files for {}", article.id))?;
+    if files.is_empty() {
+        return Err(anyhow!("no downloadable file found for {}", article.id));
+    }
+
+    let target_dir = if files.len() > 1 {
+        dir.join(sanitize_filename::sanitize(&article.title))
+    } else {
+        dir.to_path_buf()
+    };
+    std::fs::create_dir_all(&target_dir)
+        .with_context(|| format!("failed to create {}", target_dir.display()))?;
+
+    let mut used_file_names = HashSet::new();
+    for (index, file) in files.iter().enumerate() {
+        let file_name = resource_file_name(article, file, index, files.len());
+        let file_name = unique_file_name(file_name, &mut used_file_names);
+        let path = target_dir.join(file_name);
+        let bytes = client
+            .get(&file.url)
+            .send()
+            .await
+            .with_context(|| format!("failed to request {}", file.url))?
+            .error_for_status()
+            .with_context(|| format!("download returned an error status: {}", file.url))?
+            .bytes()
+            .await
+            .with_context(|| format!("failed to read {}", file.url))?;
+
+        std::fs::write(&path, bytes)
+            .with_context(|| format!("failed to write {}", path.display()))?;
+        println!("{} {}", article.id, path.display());
+    }
+
+    Ok(())
+}
+
+fn resource_file_name(
+    article: &CachedArticle,
+    file: &DownloadFile,
+    index: usize,
+    total: usize,
+) -> String {
+    let title = if total == 1 {
+        article.title.clone()
+    } else if file.title.is_empty() {
+        format!("{}-{}", article.title, index + 1)
+    } else {
+        file.title.clone()
+    };
+    let mut file_name = sanitize_filename::sanitize(title);
+    if file_name.trim().is_empty() {
+        file_name = format!("download-{}", index + 1);
+    }
+
+    if std::path::Path::new(&file_name).extension().is_none() {
+        if let Some(extension) = file_extension(&file.title).or_else(|| url_extension(&file.url)) {
+            file_name.push('.');
+            file_name.push_str(&extension);
+        }
+    }
+
+    file_name
+}
+
+fn unique_file_name(file_name: String, used_file_names: &mut HashSet<String>) -> String {
+    if used_file_names.insert(file_name.clone()) {
+        return file_name;
+    }
+
+    let path = std::path::Path::new(&file_name);
+    let stem = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .filter(|stem| !stem.is_empty())
+        .unwrap_or("download");
+    let extension = path.extension().and_then(|extension| extension.to_str());
+
+    for index in 2.. {
+        let candidate = match extension {
+            Some(extension) => format!("{stem}-{index}.{extension}"),
+            None => format!("{stem}-{index}"),
+        };
+        if used_file_names.insert(candidate.clone()) {
+            return candidate;
+        }
+    }
+
+    unreachable!("unique file name loop should always return")
+}
+
+fn file_extension(file_name: &str) -> Option<String> {
+    std::path::Path::new(file_name)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .filter(|extension| !extension.is_empty())
+        .map(str::to_string)
+}
+
+fn url_extension(url: &str) -> Option<String> {
+    let url = reqwest::Url::parse(url).ok()?;
+    url.path_segments()?
+        .next_back()?
+        .rsplit_once('.')
+        .map(|(_, extension)| extension)
+        .filter(|extension| !extension.is_empty())
+        .map(str::to_string)
+}
+
 fn print_articles(articles: &[CachedArticle]) {
     for article in articles {
         if article.publish_time.is_empty() {
@@ -566,6 +804,9 @@ fn column_cache_name(column: ArticleColumn) -> &'static str {
         ArticleColumn::Procedures => "procedures",
         ArticleColumn::DepartmentLeaders => "department-leaders",
         ArticleColumn::Institutions => "institutions",
+        ArticleColumn::CalendarCatalog => "calendar-catalog",
+        ArticleColumn::Forms => "forms",
+        ArticleColumn::Templates => "templates",
     }
 }
 
@@ -578,5 +819,8 @@ fn command_hint(column: ArticleColumn) -> &'static str {
         ArticleColumn::Procedures => "admin-procedures",
         ArticleColumn::Institutions => "institutions",
         ArticleColumn::DepartmentLeaders => "institutions",
+        ArticleColumn::CalendarCatalog => "downloads calendar-catalog",
+        ArticleColumn::Forms => "downloads forms",
+        ArticleColumn::Templates => "downloads templates",
     }
 }

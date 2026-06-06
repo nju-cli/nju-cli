@@ -21,6 +21,9 @@ pub enum ArticleColumn {
     Procedures,
     DepartmentLeaders,
     Institutions,
+    CalendarCatalog,
+    Forms,
+    Templates,
 }
 
 impl ArticleColumn {
@@ -33,6 +36,9 @@ impl ArticleColumn {
             Self::Procedures => "24751",
             Self::DepartmentLeaders => "65047",
             Self::Institutions => "65048",
+            Self::CalendarCatalog => "24809",
+            Self::Forms => "24815",
+            Self::Templates => "24816",
         }
     }
 
@@ -45,6 +51,9 @@ impl ArticleColumn {
             Self::Procedures => "办事流程",
             Self::DepartmentLeaders => "部门领导",
             Self::Institutions => "机构设置",
+            Self::CalendarCatalog => "校历目录",
+            Self::Forms => "各类表格",
+            Self::Templates => "各类模板",
         }
     }
 }
