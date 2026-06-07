@@ -5,6 +5,7 @@ mod academic_affairs;
 mod auth;
 mod ehall;
 mod exchange_system;
+mod itsc;
 mod youth_league;
 
 #[derive(Debug, Parser)]
@@ -42,6 +43,11 @@ enum Command {
         #[command(subcommand)]
         command: youth_league::YouthLeagueCommand,
     },
+    /// 信息化中心服务说明和正版软件安装教程。
+    Itsc {
+        #[command(subcommand)]
+        command: itsc::ItscCommand,
+    },
 }
 
 #[tokio::main]
@@ -55,6 +61,7 @@ async fn main() -> Result<()> {
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
         Command::YouthLeague { command } => youth_league::handle(command, &client).await?,
+        Command::Itsc { command } => itsc::handle(command, &client).await?,
     }
 
     Ok(())
