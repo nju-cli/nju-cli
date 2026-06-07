@@ -20,6 +20,12 @@ struct Cli {
 enum Command {
     /// 登录统一认证并缓存 CASTGC cookie。
     Login(auth::LoginCommand),
+    /// 读取 HTML 页面并转换为 Markdown。
+    #[command(name = "view-html")]
+    ViewHtml {
+        /// 要读取的 HTML 页面 URL。
+        url: String,
+    },
     /// 需要 ehall 登录态的服务。
     Ehall {
         #[command(subcommand)]
@@ -57,6 +63,10 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Login(command) => auth::login(command).await?,
+        Command::ViewHtml { url } => {
+            let markdown = common::read_html_page(&client, &url).await?;
+            println!("{markdown}");
+        }
         Command::Ehall { command } => ehall::handle(command).await?,
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
