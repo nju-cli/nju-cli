@@ -6,20 +6,17 @@ use aes::{
 };
 use anyhow::{Context, Result, anyhow};
 use base64::{Engine as _, engine::general_purpose};
-use d4ocr_rust::{ImageSize, TransformationPipeline};
 use reqwest::Client;
 use scraper::{Html, Selector};
 
 const LOGIN_URL: &str = "https://authserver.nju.edu.cn/authserver/login";
 const CAPTCHA_URL: &str = "https://authserver.nju.edu.cn/authserver/getCaptcha.htl";
-const OCR_MODEL_URL: &str =
-    "https://raw.githubusercontent.com/sml2h3/ddddocr/master/ddddocr/common.onnx";
 
 /// 登录南京大学统一认证，直接返回登录成功后的 CASTGC cookie。
 ///
 /// 调用方应传入启用了 cookie store/provider 且禁用自动重定向的 `reqwest::Client`，因为
 /// 登录页、验证码、登录提交需要复用同一组 cookie，且 CASTGC 位于登录响应的 Set-Cookie
-/// 中。验证码会使用 d4ocr-rust 本地模型识别，模型会自动下载到当前工作目录并复用。
+/// 中。验证码会使用 ddddocr 内置模型识别。
 pub async fn login(
     client: &Client,
     username: impl Into<String>,
@@ -48,7 +45,6 @@ pub async fn login(
         .await
         .context("failed to read NJU auth captcha")?;
 
-    ensure_ocr_model(client).await?;
     let captcha_answer = recognize_captcha(&captcha)?;
 
     submit_login(
@@ -62,49 +58,13 @@ pub async fn login(
 }
 
 fn recognize_captcha(captcha: &[u8]) -> Result<String> {
-    let image = image::load_from_memory(captcha)
-        .context("failed to decode NJU auth captcha image")?
-        .to_luma8();
-    let image_size = ImageSize {
-        width: (image.width() as f32 * (64_f32 / image.height() as f32)) as usize,
-        height: 64,
-    };
-    let model = TransformationPipeline::new(image_size);
+    let classifier =
+        ddddocr::ddddocr_classification().context("failed to initialize ddddocr classifier")?;
 
-    model
-        .recognize(image)
+    classifier
+        .classification(captcha)
         .map(|answer| answer.trim().to_string())
-        .map_err(|err| anyhow!("failed to recognize NJU auth captcha with d4ocr-rust: {err}"))
-}
-
-async fn ensure_ocr_model(client: &Client) -> Result<()> {
-    let model_path = std::env::current_dir()
-        .context("failed to get current directory")?
-        .join("common.onnx");
-
-    if tokio::fs::try_exists(&model_path)
-        .await
-        .context("failed to check d4ocr model file")?
-    {
-        return Ok(());
-    }
-
-    let model = client
-        .get(OCR_MODEL_URL)
-        .send()
-        .await
-        .context("failed to download d4ocr model")?
-        .error_for_status()
-        .context("d4ocr model download returned an error status")?
-        .bytes()
-        .await
-        .context("failed to read d4ocr model")?;
-
-    tokio::fs::write(&model_path, model)
-        .await
-        .context("failed to write d4ocr model")?;
-
-    Ok(())
+        .context("failed to recognize NJU auth captcha with ddddocr")
 }
 
 async fn submit_login(

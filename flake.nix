@@ -50,46 +50,6 @@
 
         inherit (pkgs) lib;
 
-        rustTarget = {
-          x86_64-linux = "x86_64-unknown-linux-gnu";
-          aarch64-linux = "aarch64-unknown-linux-gnu";
-          x86_64-darwin = "x86_64-apple-darwin";
-          aarch64-darwin = "aarch64-apple-darwin";
-        }.${system};
-        ortStaticArchives = {
-          x86_64-unknown-linux-gnu = pkgs.fetchurl {
-            url = "https://parcel.pyke.io/v2/delivery/ortrs/packages/msort-binary/1.18.1/ortrs-msort_static-v1.18.1-x86_64-unknown-linux-gnu.tgz";
-            hash = "sha256-Chk3BqlShoU9eS19myJxy+o1xX8kmUP+gRztl+DiSGI=";
-          };
-          aarch64-unknown-linux-gnu = pkgs.fetchurl {
-            url = "https://parcel.pyke.io/v2/delivery/ortrs/packages/msort-binary/1.18.1/ortrs-msort_static-v1.18.1-aarch64-unknown-linux-gnu.tgz";
-            hash = "sha256-Ihv9no0NWzGj591SkOq41nezEiHawN0q2NY98hbUEdg=";
-          };
-          x86_64-unknown-linux-musl = pkgs.fetchurl {
-            url = "https://github.com/86maid/ort/releases/download/v1.18.1/onnxruntime-v1.18.1-x86_64-linux-musl-static.tgz";
-            hash = "sha256-PGocA3zLygsJhMeybHspoGlOr+rnQc8i9zwHrXdEwXA=";
-          };
-          aarch64-unknown-linux-musl = pkgs.fetchurl {
-            url = "https://github.com/86maid/ort/releases/download/v1.18.1/onnxruntime-v1.18.1-aarch64-linux-musl-static.tgz";
-            hash = "sha256-fsIEDVmilUA5nC+fBfWH8C+chk3jAihfsDl7F5UJz1E=";
-          };
-          x86_64-apple-darwin = pkgs.fetchurl {
-            url = "https://parcel.pyke.io/v2/delivery/ortrs/packages/msort-binary/1.18.1/ortrs-msort_static-v1.18.1-x86_64-apple-darwin.tgz";
-            hash = "sha256-JH9zpbNmWmZg37NSE+b+qsbtbKxYFt2Fo0jfeQ9gows=";
-          };
-          aarch64-apple-darwin = pkgs.fetchurl {
-            url = "https://parcel.pyke.io/v2/delivery/ortrs/packages/msort-binary/1.18.1/ortrs-msort_static-v1.18.1-aarch64-apple-darwin.tgz";
-            hash = "sha256-tCvnavuUlZg6bV1JjVbV5oWwGPEBHvTFuMVhJLGS/Tc=";
-          };
-        };
-        ortStaticFor =
-          target:
-          pkgs.runCommand "onnxruntime-${target}-static-1.18.1" { } ''
-            mkdir -p "$out"
-            tar -xzf ${ortStaticArchives.${target}} -C "$out"
-          '';
-        ortStatic = ortStaticFor rustTarget;
-
         craneLib = crane.mkLib pkgs;
         muslCraneLib = (crane.mkLib pkgs).overrideToolchain (
           p:
@@ -117,9 +77,6 @@
             # vendored OpenSSL 的 Configure 脚本需要 perl。
             pkgs.perl
           ];
-
-          # Additional environment variables can be set directly
-          ORT_LIB_LOCATION = "${ortStatic}/onnxruntime/lib";
         };
 
         # Build *just* the cargo dependencies (of the entire workspace),
@@ -155,13 +112,11 @@
         muslBinutils = muslCc.bintools.bintools;
         muslAr = "${muslBinutils}/bin/${muslTargetPrefix}ar";
         muslRanlib = "${muslBinutils}/bin/${muslTargetPrefix}ranlib";
-        ortMuslStatic = ortStaticFor muslTarget;
 
         muslCommonArgs = commonArgs // {
           CARGO_BUILD_TARGET = muslTarget;
           CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
           "CARGO_TARGET_${muslTargetEnv}_LINKER" = muslLinker;
-          ORT_LIB_LOCATION = "${ortMuslStatic}/onnxruntime/lib";
 
           # vendored OpenSSL 也会编 C 代码，必须使用 musl toolchain。
           "CC_${muslTargetEnvLower}" = muslLinker;

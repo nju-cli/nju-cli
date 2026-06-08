@@ -43,7 +43,7 @@ pub enum VenueCommand {
         /// 保存验证码原图。
         #[arg(short, long)]
         output: Option<PathBuf>,
-        /// 使用 86maid/ddddocr 目标检测和裁剪识别输出点选坐标。
+        /// 使用 ddddocr 目标检测和裁剪识别输出点选坐标。
         #[arg(long)]
         ocr: bool,
     },
