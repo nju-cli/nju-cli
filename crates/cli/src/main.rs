@@ -6,6 +6,7 @@ mod auth;
 mod ehall;
 mod exchange_system;
 mod itsc;
+mod scit;
 mod venue;
 mod youth_league;
 
@@ -55,6 +56,11 @@ enum Command {
         #[command(subcommand)]
         command: itsc::ItscCommand,
     },
+    /// 科学技术研究院文章。
+    Scit {
+        #[command(subcommand)]
+        command: scit::ScitCommand,
+    },
     /// 体育场馆预约、查询和订单管理。
     Venue {
         #[command(subcommand)]
@@ -78,6 +84,7 @@ async fn main() -> Result<()> {
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
         Command::YouthLeague { command } => youth_league::handle(command, &client).await?,
         Command::Itsc { command } => itsc::handle(command, &client).await?,
+        Command::Scit { command } => scit::handle(command, &client).await?,
         Command::Venue { command } => venue::handle(command).await?,
     }
 

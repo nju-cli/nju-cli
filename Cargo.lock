@@ -705,6 +705,7 @@ dependencies = [
  "platform-dirs",
  "reqwest",
  "sanitize-filename",
+ "scit",
  "serde",
  "serde_json",
  "tokio",
@@ -4575,6 +4576,18 @@ dependencies = [
  "quote",
  "serde_derive_internals",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "scit"
+version = "1.2.0"
+dependencies = [
+ "anyhow",
+ "common",
+ "reqwest",
+ "scraper",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

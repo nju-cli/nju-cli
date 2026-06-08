@@ -35,6 +35,7 @@ nju-cli view-html <url>
 | 交换生管理                                                                                                                                                                                                        | subcommands/exchange-system.md  |
 | 南大团委：最新动态、公告通知                                                                                                                                                                                      | subcommands/youth-league.md     |
 | 信息化中心：网络账号、VPN、邮箱、校园卡等服务说明；正版软件安装、激活、许可证更新和培训教程                                                                                                                       | subcommands/itsc.md             |
+| 科学技术研究院：通知公告、科研动态、公示信息、AI4S 专栏，以及科研项目、工作流程、相关下载、机构设置、政策法规、科研平台、科技成果、学风建设及其子栏目文章                                                        | subcommands/scit.md             |
 | 体育场馆：场馆搜索、预约状态、提交预约、免费付款确认、预约记录、详情和取消预约                                                                                                                                    | subcommands/venue.md            |
 
 ## 功能缺失和项目贡献
