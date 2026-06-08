@@ -6,6 +6,7 @@ mod auth;
 mod ehall;
 mod exchange_system;
 mod itsc;
+mod venue;
 mod youth_league;
 
 #[derive(Debug, Parser)]
@@ -54,6 +55,11 @@ enum Command {
         #[command(subcommand)]
         command: itsc::ItscCommand,
     },
+    /// 体育场馆预约、查询和订单管理。
+    Venue {
+        #[command(subcommand)]
+        command: venue::VenueCommand,
+    },
 }
 
 #[tokio::main]
@@ -72,6 +78,7 @@ async fn main() -> Result<()> {
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
         Command::YouthLeague { command } => youth_league::handle(command, &client).await?,
         Command::Itsc { command } => itsc::handle(command, &client).await?,
+        Command::Venue { command } => venue::handle(command).await?,
     }
 
     Ok(())
