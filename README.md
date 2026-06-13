@@ -74,3 +74,7 @@ claude plugin install nju-cli@nju-cli
 
 如需使用 OpenCode native skill，再把 npm 包里的 `skills/nju-cli` 复制到
 `.opencode/skills/nju-cli` 或 `~/.config/opencode/skills/nju-cli`。
+
+### Qoder Work / Qoder IDE
+
+已上架官方[技能市场](https://qoder.com/marketplace/skill?id=official_kwXbUcYC) ，可直接点击安装
