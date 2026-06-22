@@ -1,13 +1,14 @@
 name: Release
 
 on:
+  pull_request:
   push:
     tags:
       - "v*"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-nix:
@@ -132,6 +133,8 @@ jobs:
       - package-skills
     runs-on: blacksmith-2vcpu-ubuntu-2404
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/download-artifact@v7
