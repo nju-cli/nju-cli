@@ -106,12 +106,31 @@ jobs:
           path: dist/nju-cli-windows-x86_64.zip
           if-no-files-found: error
 
+  package-skills:
+    name: Package skills
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Package nju-cli skills
+        run: |
+          mkdir -p dist
+          tar -czf dist/nju-cli-skills.tar.gz nju-cli-skills
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nju-cli-skills.tar.gz
+          path: dist/nju-cli-skills.tar.gz
+          if-no-files-found: error
+
   publish:
     name: Publish GitHub release
     needs:
       - build-nix
       - build-windows
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+      - package-skills
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:

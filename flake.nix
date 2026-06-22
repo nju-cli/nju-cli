@@ -68,13 +68,10 @@
         commonArgs = {
           inherit src;
           strictDeps = true;
+          CARGO_BUILD_RUSTFLAGS = lib.optionalString pkgs.stdenv.isDarwin "-C link-arg=-Wl,-dead_strip_dylibs";
 
           buildInputs = [
             # Add additional build inputs here
-          ]
-          ++ lib.optionals pkgs.stdenv.isDarwin [
-            # Additional darwin specific inputs can be set here
-            pkgs.libiconv
           ];
 
           nativeBuildInputs = [
