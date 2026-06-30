@@ -5,6 +5,7 @@ mod academic_affairs;
 mod auth;
 mod ehall;
 mod exchange_system;
+mod graduate_admission;
 mod itsc;
 mod scit;
 mod venue;
@@ -45,6 +46,12 @@ enum Command {
         #[command(subcommand)]
         command: exchange_system::ExchangeSystemCommand,
     },
+    /// 研究生招生网：硕士、博士、推免、港澳台招生和信息公开。
+    #[command(name = "graduate-admission")]
+    GraduateAdmission {
+        #[command(subcommand)]
+        command: graduate_admission::GraduateAdmissionCommand,
+    },
     /// 南大团委最新动态和公告通知。
     #[command(name = "youth-league")]
     YouthLeague {
@@ -82,6 +89,9 @@ async fn main() -> Result<()> {
         Command::Ehall { command } => ehall::handle(command).await?,
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
         Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
+        Command::GraduateAdmission { command } => {
+            graduate_admission::handle(command, &client).await?
+        }
         Command::YouthLeague { command } => youth_league::handle(command, &client).await?,
         Command::Itsc { command } => itsc::handle(command, &client).await?,
         Command::Scit { command } => scit::handle(command, &client).await?,

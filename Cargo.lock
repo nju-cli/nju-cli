@@ -700,6 +700,7 @@ dependencies = [
  "ddddocr",
  "ehall",
  "exchange-system",
+ "graduate-admission",
  "itsc",
  "my-workspace-hack",
  "platform-dirs",
@@ -1764,6 +1765,18 @@ checksum = "ee8cfcc411d9adbbaba82fb72661cc1bcca13e8bba98b364e62b2dba8f960159"
 dependencies = [
  "color_quant",
  "weezl",
+]
+
+[[package]]
+name = "graduate-admission"
+version = "1.2.0"
+dependencies = [
+ "anyhow",
+ "common",
+ "reqwest",
+ "scraper",
+ "serde",
+ "tokio",
 ]
 
 [[package]]
