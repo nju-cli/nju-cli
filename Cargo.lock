@@ -301,6 +301,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "asset-management"
+version = "1.2.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "common",
+ "reqwest",
+ "scraper",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "astral-tl"
 version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -694,6 +708,7 @@ version = "1.2.0"
 dependencies = [
  "academic-affairs",
  "anyhow",
+ "asset-management",
  "base64",
  "clap",
  "common",

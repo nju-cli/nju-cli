@@ -11,6 +11,7 @@ path = "src/main.rs"
 [dependencies]
 academic-affairs = { path = "../academic-affairs" }
 anyhow = "1"
+asset-management = { path = "../asset-management" }
 common = { path = "../common" }
 ehall = { path = "../ehall" }
 exchange-system = { path = "../exchange-system" }
