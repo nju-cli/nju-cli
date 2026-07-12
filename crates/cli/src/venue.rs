@@ -297,7 +297,7 @@ pub struct CancelOptions {
 }
 
 pub async fn handle(command: VenueCommand) -> Result<()> {
-    let client = auth::authenticated_client()?;
+    let client = auth::authenticated_client().await?;
     let session = venue::prepare_session(&client)
         .await
         .context("failed to prepare venue session; try running `nju-cli login` again")?;

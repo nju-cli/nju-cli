@@ -5,6 +5,8 @@ use clap::{Args, Subcommand};
 use platform_dirs::AppDirs;
 use serde::{Deserialize, Serialize};
 
+use crate::auth;
+
 #[derive(Debug, Subcommand)]
 pub enum ExchangeSystemCommand {
     /// 新闻通知。
@@ -62,17 +64,18 @@ struct CachedProject {
     remark: Option<String>,
 }
 
-pub async fn handle(command: ExchangeSystemCommand, client: &reqwest::Client) -> Result<()> {
+pub async fn handle(command: ExchangeSystemCommand) -> Result<()> {
     match command {
-        ExchangeSystemCommand::Notice { command } => handle_notice(command, client).await,
-        ExchangeSystemCommand::Project { command } => handle_project(command, client).await,
+        ExchangeSystemCommand::Notice { command } => handle_notice(command).await,
+        ExchangeSystemCommand::Project { command } => handle_project(command).await,
     }
 }
 
-async fn handle_notice(command: NoticeCommand, client: &reqwest::Client) -> Result<()> {
+async fn handle_notice(command: NoticeCommand) -> Result<()> {
     match command {
         NoticeCommand::List(options) => {
-            let page = exchange_system::get_notices(client, 1, options.page_size)
+            let client = auth::authenticated_client().await?;
+            let page = exchange_system::get_notices(&client, 1, options.page_size)
                 .await
                 .context("failed to list exchange system notices")?;
             let notices = page
@@ -136,10 +139,11 @@ async fn handle_notice(command: NoticeCommand, client: &reqwest::Client) -> Resu
     }
 }
 
-async fn handle_project(command: ProjectCommand, client: &reqwest::Client) -> Result<()> {
+async fn handle_project(command: ProjectCommand) -> Result<()> {
     match command {
         ProjectCommand::List(options) => {
-            let page = exchange_system::get_projects(client, 1, options.page_size)
+            let client = auth::authenticated_client().await?;
+            let page = exchange_system::get_projects(&client, 1, options.page_size)
                 .await
                 .context("failed to list exchange system projects")?;
             let projects = page

@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
         }
         Command::Ehall { command } => ehall::handle(command).await?,
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
-        Command::ExchangeSystem { command } => exchange_system::handle(command, &client).await?,
+        Command::ExchangeSystem { command } => exchange_system::handle(command).await?,
         Command::GraduateAdmission { command } => {
             graduate_admission::handle(command, &client).await?
         }

@@ -57,6 +57,31 @@ pub async fn login(
     .await
 }
 
+/// 检查 client 是否已持有有效的统一认证登陆态，未登录或登陆态过期时报错。
+///
+/// 已登录（cookie 带有效 CASTGC）时访问登录页不会再出现密码登录表单；
+/// 未登录或登陆态过期时会返回带 `form#pwdFromId` 的登录页。
+pub async fn ensure_logged_in(client: &Client) -> Result<()> {
+    let login_page = client
+        .get(LOGIN_URL)
+        .send()
+        .await
+        .context("failed to request NJU auth login page")?
+        .error_for_status()
+        .context("NJU auth login page returned an error status")?
+        .text()
+        .await
+        .context("failed to read NJU auth login page")?;
+
+    if login_page.contains("pwdFromId") {
+        return Err(anyhow!(
+            "not logged in or the login has expired; run `nju-cli login --username USERNAME --password PASSWORD` first"
+        ));
+    }
+
+    Ok(())
+}
+
 fn recognize_captcha(captcha: &[u8]) -> Result<String> {
     let classifier =
         ddddocr::ddddocr_classification().context("failed to initialize ddddocr classifier")?;

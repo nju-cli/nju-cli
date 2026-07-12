@@ -65,16 +65,8 @@ pub async fn get_notices(
     client: &reqwest::Client,
     page_index: u64,
     page_size: u64,
-) -> reqwest::Result<Page<Notice>> {
-    client
-        .get(NOTICE_LIST_URL)
-        .query(&[("page", page_index), ("limit", page_size)])
-        .query(&[(".me", ME)])
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await
+) -> Result<Page<Notice>> {
+    get_page(client, NOTICE_LIST_URL, page_index, page_size).await
 }
 
 /// 获取交换生系统项目列表。
@@ -82,16 +74,28 @@ pub async fn get_projects(
     client: &reqwest::Client,
     page_index: u64,
     page_size: u64,
-) -> reqwest::Result<Page<Project>> {
+) -> Result<Page<Project>> {
+    get_page(client, PROJECT_LIST_URL, page_index, page_size).await
+}
+
+async fn get_page<T: serde::de::DeserializeOwned>(
+    client: &reqwest::Client,
+    url: &str,
+    page_index: u64,
+    page_size: u64,
+) -> Result<Page<T>> {
     client
-        .get(PROJECT_LIST_URL)
+        .get(url)
         .query(&[("page", page_index), ("limit", page_size)])
         .query(&[(".me", ME)])
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .with_context(|| format!("failed to GET {url}"))?
+        .error_for_status()
+        .with_context(|| format!("GET {url} returned an error status"))?
         .json()
         .await
+        .with_context(|| format!("failed to decode GET {url} response"))
 }
 
 /// 将通知正文 HTML 转为 Markdown，并补全相对链接。

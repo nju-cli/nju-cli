@@ -55,19 +55,23 @@ pub async fn login(command: LoginCommand) -> Result<()> {
     Ok(())
 }
 
-pub fn authenticated_client() -> Result<reqwest::Client> {
+/// 构建带缓存统一认证登陆态的 client，并检查登陆态仍然有效。
+pub async fn authenticated_client() -> Result<reqwest::Client> {
     let castgc = load_castgc()?;
     let jar = Arc::new(Jar::default());
     jar.add_cookie_str(
         &format!("CASTGC={castgc}"),
         &Url::parse("https://authserver.nju.edu.cn").context("invalid NJU authserver URL")?,
     );
-
-    reqwest::Client::builder()
+    let client = reqwest::Client::builder()
         .cookie_provider(jar)
         .user_agent("nju-cli")
         .build()
-        .context("failed to build authenticated reqwest client")
+        .context("failed to build authenticated reqwest client")?;
+
+    common::unified_auth::ensure_logged_in(&client).await?;
+
+    Ok(client)
 }
 
 fn save_castgc(castgc: String) -> Result<()> {
