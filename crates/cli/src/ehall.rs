@@ -412,7 +412,7 @@ pub struct CourseScheduleQueryOptions {
 }
 
 pub async fn handle(command: EhallCommand) -> Result<()> {
-    let client = auth::authenticated_client()?;
+    let client = auth::authenticated_client().await?;
 
     match command {
         EhallCommand::TrainingProgram { command } => {

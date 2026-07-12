@@ -14,6 +14,9 @@ jobs:
   build-nix:
     name: Build ${{ matrix.name }} with Nix
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -42,24 +45,29 @@ jobs:
         run: nix build --accept-flake-config ".#${{ matrix.package }}"
 
       - name: Push to Nix binary cache
+        if: runner.os == 'Linux'
         env:
-          ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
-          NIX_SIGNING_KEY: ${{ secrets.NIX_SIGNING_KEY }}
+          ORANC_USERNAME: ${{ github.actor }}
+          ORANC_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          ORANC_SIGNING_KEY: ${{ secrets.ORANC_SIGNING_KEY }}
         run: |
-          if [ -z "${ATTIC_TOKEN}" ] || [ -z "${NIX_SIGNING_KEY}" ]; then
-            echo "ATTIC_TOKEN or NIX_SIGNING_KEY is not set; skip Nix cache push."
+          if [ -z "${ORANC_SIGNING_KEY}" ]; then
+            echo "ORANC_SIGNING_KEY is not set; skip Nix cache push."
             exit 0
           fi
 
-          key_file="${RUNNER_TEMP}/nix-signing-key.pem"
-          printf '%s\n' "${NIX_SIGNING_KEY}" > "${key_file}"
-          chmod 600 "${key_file}"
-
           out="$(readlink -f result)"
-          nix store sign --key-file "${key_file}" --recursive "${out}"
+          sudo chmod o+w /nix/var/nix/db
 
-          nix shell nixpkgs#attic-client -c attic login --set-default nju-cli https://nix-binary-cache.ken.com.im/ "${ATTIC_TOKEN}"
-          nix shell nixpkgs#attic-client -c attic push nju-cli:nju-cli "${out}"
+          nix run github:linyinfeng/oranc#oranc -- \
+            push \
+            --registry ghcr.io \
+            --repository nju-cli/nju-cli \
+            initialize
+          printf '%s\n' "${out}" | nix run github:linyinfeng/oranc#oranc -- \
+            push \
+            --registry ghcr.io \
+            --repository nju-cli/nju-cli
 
       - name: Package binary
         run: |

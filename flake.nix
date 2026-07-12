@@ -3,12 +3,10 @@
 
   nixConfig = {
     extra-substituters = [
-      "https://nix-binary-cache.ken.com.im/nju-cli"
+      "https://oranc.li7g.com/ghcr.io/nju-cli/nju-cli"
     ];
     extra-trusted-public-keys = [
-      "nju-cli:DRWFBO6JKN1QLv2w+o/BgW42BDnBDzebWTP+cwQh71w="
-      "nju-cli-cache-1:qG9SW6IO+FJgaSAZraau16eX5aKE+umrhI9oV+K1aHM="
-      "ken.com.im:br/oG6ywHr+tGvmUpZEA5mVYSNZgrNrFflazAEI+AK4="
+      "nju-cli-oranc-1:EFyUExbRtlqhfFNEsdtQlTA4R/Gyb2tV+et43dWHTkA="
     ];
   };
 
