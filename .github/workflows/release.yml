@@ -57,18 +57,17 @@ jobs:
           fi
 
           out="$(readlink -f result)"
+          sudo chmod o+w /nix/var/nix/db
 
           nix run github:linyinfeng/oranc#oranc -- \
             push \
             --registry ghcr.io \
             --repository nju-cli/nju-cli \
-            --allow-immutable-db \
             initialize
           printf '%s\n' "${out}" | nix run github:linyinfeng/oranc#oranc -- \
             push \
             --registry ghcr.io \
-            --repository nju-cli/nju-cli \
-            --allow-immutable-db
+            --repository nju-cli/nju-cli
 
       - name: Package binary
         run: |
