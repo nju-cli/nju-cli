@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 mod academic_affairs;
+mod asset_management;
 mod auth;
 mod ehall;
 mod exchange_system;
@@ -39,6 +40,12 @@ enum Command {
     AcademicAffairs {
         #[command(subcommand)]
         command: academic_affairs::AcademicAffairsCommand,
+    },
+    /// 资产管理处：新闻、通知、规章、下载、处罚、指南和公开招租。
+    #[command(name = "asset-management")]
+    AssetManagement {
+        #[command(subcommand)]
+        command: asset_management::AssetManagementCommand,
     },
     /// 交换生系统新闻通知和项目。
     #[command(name = "exchange-system")]
@@ -88,6 +95,7 @@ async fn main() -> Result<()> {
         }
         Command::Ehall { command } => ehall::handle(command).await?,
         Command::AcademicAffairs { command } => academic_affairs::handle(command, &client).await?,
+        Command::AssetManagement { command } => asset_management::handle(command, &client).await?,
         Command::ExchangeSystem { command } => exchange_system::handle(command).await?,
         Command::GraduateAdmission { command } => {
             graduate_admission::handle(command, &client).await?
