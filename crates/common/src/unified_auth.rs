@@ -169,7 +169,7 @@ pub fn encrypt_password(password: &str, salt: &str) -> String {
 
 fn extract_login_error(html: &str) -> Option<String> {
     let document = Html::parse_document(html);
-    let selector = Selector::parse("form#casLoginForm span.auth_error").ok()?;
+    let selector = Selector::parse("#showErrorTip, form#casLoginForm span.auth_error").ok()?;
 
     document
         .select(&selector)
